@@ -6,6 +6,10 @@
 - The `screenshots/` folder is git-ignored. Do not commit its contents.
 - When calling `mcp__playwright__browser_take_screenshot`, always set `filename` to `screenshots/<name>.png`.
 
+### UI
+
+- When modifying any UI file (`static/`), always read `docs/ui/DESIGN.md` first and follow its specifications.
+
 ### Commits
 
 - Each commit must represent a single logical unit of work (one feature, one fix, one refactor).
