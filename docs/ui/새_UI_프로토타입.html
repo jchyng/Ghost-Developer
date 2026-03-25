@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Company MVP - UI Prototype</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-panel: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --success: #238636;
+            --danger: #da3633;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar (Task Queue & Sessions) */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-add {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-add:hover { background-color: #2ea043; }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .task-group {
+            margin-bottom: 12px;
+        }
+
+        .task-group-title {
+            padding: 4px 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .task-item {
+            padding: 10px 16px;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .task-item:hover { background-color: rgba(255,255,255,0.05); }
+        .task-item.active {
+            background-color: rgba(88, 166, 255, 0.1);
+            border-left-color: var(--accent);
+        }
+
+        .task-cwd {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .task-prompt {
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .status-running { background-color: rgba(35, 134, 54, 0.2); color: #3fb950; }
+        .status-pending { background-color: rgba(139, 148, 158, 0.2); color: var(--text-muted); }
+        .status-idle { background-color: rgba(88, 166, 255, 0.2); color: var(--accent); }
+
+        /* Main Terminal Area */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            height: 48px;
+            padding: 0 16px;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .term-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .term-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn-stop {
+            background-color: transparent;
+            color: var(--danger);
+            border: 1px solid var(--border-color);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-stop:hover { border-color: var(--danger); }
+
+        /* Mock xterm.js container */
+        .terminal-container {
+            flex: 1;
+            background-color: #000;
+            padding: 16px;
+            font-family: "Fira Code", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #d4d4d4;
+            overflow-y: auto;
+        }
+
+        /* Terminal Mock Text Colors */
+        .c-green { color: #4af626; }
+        .c-blue { color: #3b8eea; }
+        .c-yellow { color: #f1c40f; }
+        .c-dim { color: #808080; }
+
+        /* Modal (Add Task) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 400px;
+            padding: 20px;
+        }
+        .modal h2 { font-size: 16px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; margin-bottom: 4px; color: var(--text-muted); }
+        .form-group input { width: 100%; padding: 8px; background: var(--bg-dark); border: 1px solid var(--border-color); color: white; border-radius: 4px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+        .btn-cancel { background: transparent; color: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer;}
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>⚡ AI Company</h1>
+            <button class="btn-add" onclick="document.getElementById('addModal').style.display='flex'">+ Task</button>
+        </div>
+        
+        <div class="task-list">
+            <div class="task-group">
+                <div class="task-group-title">Active Project (Running)</div>
+                <div class="task-item active">
+                    <div style="display:flex; justify-content: space-between;">
+                        <span class="task-cwd">/dev/frontend</span>
+                        <span class="status-badge status-running">Running</span>
+                    </div>
+                    <div class="task-prompt">로그인 페이지 UI 및 연동 구현해줘</div>
+                </div>
+                <div class="task-item">
+                    <div style="display:flex; justify-content: space-between;">
+                        <span class="task-cwd">/dev/frontend</span>
+                        <span class="status-badge status-pending">Pending</span>
+                    </div>
+                    <div class="task-prompt">Header 네비게이션 바 디자인 수정</div>
+                </div>
+            </div>
+
+            <div class="task-group">
+                <div class="task-group-title">Other Projects (Idle)</div>
+                <div class="task-item">
+                    <div style="display:flex; justify-content: space-between;">
+                        <span class="task-cwd">/dev/backend</span>
+                        <span class="status-badge status-idle">Idle</span>
+                    </div>
+                    <div class="task-prompt">대기 중 (직접 터미널 입력 가능)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Terminal Area -->
+    <div class="main-area">
+        <div class="terminal-header">
+            <div class="term-info">
+                <span class="term-title">Claude Code — /dev/frontend</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Auto-commit enabled</span>
+            </div>
+            <button class="btn-stop">Interrupt (Ctrl+C)</button>
+        </div>
+        
+        <!-- Terminal Mockup (xterm.js will go here) -->
+        <div class="terminal-container">
+            <div><span class="c-green">~/dev/frontend</span>$ <span class="c-dim"># Auto-commit before task starts...</span></div>
+            <div>[main a1b2c3d] Auto-commit: Before task '로그인 페이지 UI 및 연동 구현해줘'</div>
+            <br>
+            <div><span class="c-green">~/dev/frontend</span>$ claude --dangerously-skip-permissions "로그인 페이지 UI 및 연동 구현해줘"</div>
+            <div><span class="c-blue">ℹ️</span> Starting Claude Code session...</div>
+            <br>
+            <div><span class="c-yellow">⚙️</span> <span class="c-dim">Analyzing project structure...</span></div>
+            <div><span class="c-yellow">⚙️</span> <span class="c-dim">Reading package.json and src/App.js...</span></div>
+            <br>
+            <div>I will create a new Login component and update the routing. I'll use TailwindCSS as configured in this project.</div>
+            <br>
+            <div><span class="c-blue">Writing to src/pages/Login.jsx...</span></div>
+            <div><span class="c-blue">Updating src/App.jsx...</span></div>
+            <br>
+            <div><span class="c-yellow">⠋</span> Running tests to verify the component renders... <span class="c-dim">(npm run test)</span></div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <h2>새 작업 추가</h2>
+            <div class="form-group">
+                <label>작업 경로 (CWD)</label>
+                <input type="text" value="/dev/ai-company" placeholder="/path/to/project">
+            </div>
+            <div class="form-group">
+                <label>프롬프트 (지시사항)</label>
+                <input type="text" placeholder="예: 결제 모듈 연동해줘">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="document.getElementById('addModal').style.display='none'">취소</button>
+                <button class="btn-add" onclick="document.getElementById('addModal').style.display='none'">큐에 추가</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
