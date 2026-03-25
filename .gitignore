@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 가상환경
+venv/
+.venv/
+env/
+.venv*/
+
+# 환경변수 (API 키 포함 - 절대 커밋 금지)
+.env
+
+# 워커 작업 디렉토리 (런타임 생성물)
+workspaces/
+
+# QA Tester Worker 스크린샷 (Playwright 생성)
+screenshots/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 런타임 생성물
+*.db
+*.log
+hello.txt
+
+# 프론트엔드
+frontend/node_modules/
+frontend/dist/
+frontend/package-lock.json

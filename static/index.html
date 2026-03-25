@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Company</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: #1e1e1e; color: #ccc; font-family: sans-serif; overflow: hidden; }
+
+    #app { display: flex; width: 100%; height: 100%; }
+
+    /* 사이드바 */
+    #sidebar { width: 280px; min-width: 280px; background: #252526; border-right: 1px solid #333; display: flex; flex-direction: column; }
+    #sidebar h1 { padding: 12px 14px; font-size: 13px; color: #9cdcfe; border-bottom: 1px solid #333; letter-spacing: 1px; }
+
+    #task-form { padding: 10px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 6px; }
+    #task-form input, #task-form textarea {
+      background: #3c3c3c; border: 1px solid #555; color: #ccc;
+      padding: 5px 8px; font-size: 12px; border-radius: 3px; width: 100%;
+    }
+    #task-form textarea { height: 72px; resize: none; font-family: inherit; }
+    #task-form button {
+      background: #0e639c; border: none; color: #fff;
+      padding: 6px; font-size: 12px; border-radius: 3px; cursor: pointer;
+    }
+    #task-form button:hover { background: #1177bb; }
+
+    #task-list { flex: 1; overflow-y: auto; }
+
+    .tab {
+      padding: 8px 12px; cursor: pointer; border-left: 3px solid transparent;
+      border-bottom: 1px solid #2a2a2a; font-size: 12px;
+    }
+    .tab:hover { background: #2a2d2e; }
+    .tab.active { background: #2a2d2e; border-left-color: #0e639c; }
+
+    .tab-label { color: #9cdcfe; }
+    .tab-status { font-size: 10px; font-weight: bold; text-transform: uppercase; }
+    .tab-status.pending { color: #888; }
+    .tab-status.running { color: #ce9178; }
+    .tab-status.done    { color: #4ec9b0; }
+    .tab-status.error   { color: #f14c4c; }
+    .tab-prompt { font-size: 11px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tab-cwd    { font-size: 10px; color: #555; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 터미널 패널 */
+    #terminal-panel { flex: 1; min-width: 0; }
+    #terminal { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h1>⚡ AI COMPANY</h1>
+
+    <div id="task-form">
+      <input  id="inp-cwd"    type="text"  placeholder="프로젝트 경로 (예: C:/dev/myapp)" />
+      <textarea id="inp-prompt" placeholder="작업 지시 (예: README.md 파일을 작성해줘)"></textarea>
+      <button id="btn-submit">▶ 실행</button>
+    </div>
+
+    <div id="task-list">
+      <!-- Shell 탭 (항상 첫 번째) -->
+      <div class="tab active" id="tab-shell" onclick="connectTo('shell')">
+        <div class="tab-label">🖥 Shell</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="terminal-panel">
+    <div id="terminal"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
+<script>
+  // ── 터미널 초기화 ──────────────────────────────────────────────────────
+  const term = new Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: '"Cascadia Code", "Fira Code", monospace',
+    theme: { background: "#1e1e1e" },
+  });
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(document.getElementById("terminal"));
+  fitAddon.fit();
+  window.addEventListener("resize", () => fitAddon.fit());
+
+  let ws = null;
+  let currentSession = null;   // 현재 연결된 session_id
+
+  // ── WebSocket 연결 ─────────────────────────────────────────────────────
+  function connectTo(sessionId) {
+    if (ws) { ws.close(); ws = null; }
+
+    currentSession = sessionId;
+    term.clear();
+
+    // 탭 active 표시
+    document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+    const tabEl = document.querySelector(`[data-session="${sessionId}"]`) ||
+                  (sessionId === "shell" ? document.getElementById("tab-shell") : null);
+    if (tabEl) tabEl.classList.add("active");
+
+    ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+      if (sessionId === "shell") sendResize(term.cols, term.rows);
+    };
+    ws.onmessage = (e) => term.write(new Uint8Array(e.data));
+    ws.onclose   = () => term.write("\r\n\x1b[90m[연결 종료]\x1b[0m\r\n");
+    ws.onerror   = () => term.write("\r\n\x1b[31m[연결 오류]\x1b[0m\r\n");
+  }
+
+  // Shell만 키 입력 전달 (태스크 터미널은 읽기 전용)
+  term.onData((data) => {
+    if (ws?.readyState === WebSocket.OPEN && currentSession === "shell") {
+      ws.send(new TextEncoder().encode(data));
+    }
+  });
+
+  term.onResize(({ cols, rows }) => sendResize(cols, rows));
+
+  function sendResize(cols, rows) {
+    if (ws?.readyState === WebSocket.OPEN && currentSession === "shell") {
+      ws.send(JSON.stringify({ type: "resize", cols, rows }));
+    }
+  }
+
+  // ── 태스크 제출 ────────────────────────────────────────────────────────
+  document.getElementById("btn-submit").addEventListener("click", async () => {
+    const cwd    = document.getElementById("inp-cwd").value.trim();
+    const prompt = document.getElementById("inp-prompt").value.trim();
+    if (!cwd || !prompt) return;
+
+    // cwd 기억 (localStorage)
+    localStorage.setItem("lastCwd", cwd);
+
+    const res  = await fetch("/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cwd, prompt }),
+    });
+    const task = await res.json();
+
+    document.getElementById("inp-prompt").value = "";
+    addTab(task);
+    connectTo(task.session_id);
+  });
+
+  // 마지막 cwd 복원
+  const lastCwd = localStorage.getItem("lastCwd");
+  if (lastCwd) document.getElementById("inp-cwd").value = lastCwd;
+
+  // ── 사이드바 탭 추가 ───────────────────────────────────────────────────
+  function addTab(task) {
+    const div = document.createElement("div");
+    div.className = "tab";
+    div.dataset.session = task.session_id;
+    div.dataset.taskId  = task.id;
+    div.onclick = () => connectTo(task.session_id);
+    div.innerHTML = `
+      <div class="tab-status ${task.status}" id="status-${task.id}">${task.status}</div>
+      <div class="tab-prompt">${esc(task.prompt)}</div>
+      <div class="tab-cwd">${esc(task.cwd)}</div>
+    `;
+    document.getElementById("task-list").appendChild(div);
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ── 상태 폴링 (2초마다) ────────────────────────────────────────────────
+  setInterval(async () => {
+    const list = await fetch("/tasks").then(r => r.json());
+    list.forEach(t => {
+      const el = document.getElementById(`status-${t.id}`);
+      if (el && el.textContent !== t.status) {
+        el.textContent = t.status;
+        el.className = `tab-status ${t.status}`;
+      }
+    });
+  }, 2000);
+
+  // ── 초기 Shell 연결 ────────────────────────────────────────────────────
+  connectTo("shell");
+</script>
+</body>
+</html>
