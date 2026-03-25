@@ -44,6 +44,12 @@
     .tab-status.error   { color: #f14c4c; }
     .tab-prompt { font-size: 11px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tab-cwd    { font-size: 10px; color: #555; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tab-status.cancelled { color: #888; }
+    .stop-btn {
+      float: right; background: none; border: 1px solid #555; color: #f14c4c;
+      font-size: 10px; padding: 1px 5px; border-radius: 3px; cursor: pointer; line-height: 1.4;
+    }
+    .stop-btn:hover { background: #3a1a1a; }
 
     /* 터미널 패널 */
     #terminal-panel { flex: 1; min-width: 0; }
@@ -165,11 +171,20 @@
     div.dataset.taskId  = task.id;
     div.onclick = () => connectTo(task.session_id);
     div.innerHTML = `
-      <div class="tab-status ${task.status}" id="status-${task.id}">${task.status}</div>
+      <div class="tab-status ${task.status}" id="status-${task.id}">
+        ${task.status}
+        <button class="stop-btn" id="stop-${task.id}" onclick="stopTask('${task.id}',event)"
+          style="${task.status === 'running' ? '' : 'display:none'}">■ 중단</button>
+      </div>
       <div class="tab-prompt">${esc(task.prompt)}</div>
       <div class="tab-cwd">${esc(task.cwd)}</div>
     `;
     document.getElementById("task-list").appendChild(div);
+  }
+
+  async function stopTask(taskId, e) {
+    e.stopPropagation();  // connectTo 트리거 방지
+    await fetch(`/tasks/${taskId}`, { method: 'DELETE' });
   }
 
   function esc(s) {
@@ -180,11 +195,17 @@
   setInterval(async () => {
     const list = await fetch("/tasks").then(r => r.json());
     list.forEach(t => {
-      const el = document.getElementById(`status-${t.id}`);
-      if (el && el.textContent !== t.status) {
-        el.textContent = t.status;
+      const el   = document.getElementById(`status-${t.id}`);
+      const stop = document.getElementById(`stop-${t.id}`);
+      if (!el) return;
+      const prev = el.dataset.status;
+      if (prev !== t.status) {
+        el.dataset.status = t.status;
         el.className = `tab-status ${t.status}`;
+        // 텍스트 노드만 교체 (버튼은 유지)
+        el.childNodes[0].textContent = `\n        ${t.status}\n        `;
       }
+      if (stop) stop.style.display = t.status === 'running' ? '' : 'none';
     });
   }, 2000);
 

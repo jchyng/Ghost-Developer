@@ -42,7 +42,7 @@ async def git_commit(cwd: str, message: str):
 # ── 태스크 직렬화 (내부 필드 제외) ───────────────────────────────────────
 
 def task_to_dict(t: dict) -> dict:
-    return {k: v for k, v in t.items() if k not in ("output", "output_event")}
+    return {k: v for k, v in t.items() if k not in ("output", "output_event", "proc")}
 
 
 # ── 태스크 실행기 ─────────────────────────────────────────────────────────
@@ -69,6 +69,8 @@ async def run_task(task: dict):
             task["output_event"].set()
             return
 
+        task["proc"] = proc
+
         loop = asyncio.get_event_loop()
 
         # PTY 출력을 output 버퍼에 누적 (WS가 구독)
@@ -90,7 +92,9 @@ async def run_task(task: dict):
         while proc.isalive():
             await asyncio.sleep(0.3)
 
-        task["status"] = "done"
+        # 외부에서 cancel된 경우 status가 이미 "cancelled"
+        if task["status"] != "cancelled":
+            task["status"] = "done"
         task["output_event"].set()
 
         await git_commit(cwd, f"Auto-commit: After {task['prompt'][:50]}")
@@ -109,6 +113,7 @@ async def create_task(body: dict):
         "session_id": f"task-{task_id}",
         "output": bytearray(),
         "output_event": None,
+        "proc": None,
     }
     tasks.append(task)
     asyncio.create_task(run_task(task))
@@ -118,6 +123,19 @@ async def create_task(body: dict):
 @app.get("/tasks")
 async def list_tasks():
     return [task_to_dict(t) for t in tasks]
+
+
+@app.delete("/tasks/{task_id}")
+async def cancel_task(task_id: str):
+    task = next((t for t in tasks if t["id"] == task_id), None)
+    if not task:
+        return {"error": "not found"}
+    if task["status"] == "running":
+        task["status"] = "cancelled"
+        proc = task.get("proc")
+        if proc and proc.isalive():
+            proc.close()
+    return task_to_dict(task)
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────
