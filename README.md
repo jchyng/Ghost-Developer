@@ -33,8 +33,7 @@ ai-company/
     │   ├── 2_MVP_기획서.md
     │   └── 3_향후_확장계획.md
     └── ui/              # UI 레퍼런스
-        ├── 새_UI_프로토타입.html
-        └── screenshots/ # 프로토타입 스크린샷
+        └── DESIGN.md    # 디자인 시스템 (Kinetic Monolith)
 ```
 
 ---
@@ -55,6 +54,7 @@ claude --dangerously-skip-permissions -p "..."
 ```
 
 **태스크 흐름:**
+
 1. 브라우저에서 `cwd` + 프롬프트 제출
 2. 서버가 해당 `cwd`에서 Claude Code를 PTY로 실행
 3. Claude의 터미널 출력이 WebSocket으로 브라우저에 실시간 스트리밍
@@ -79,9 +79,9 @@ uvicorn server:app --reload
 
 ## API
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| `POST` | `/tasks` | 작업 추가 `{ cwd, prompt }` |
-| `GET`  | `/tasks` | 전체 작업 목록 조회 |
-| `DELETE` | `/tasks/{id}` | 실행 중인 작업 강제 종료 |
-| `WS`   | `/ws/{session_id}` | PTY ↔ 브라우저 바이너리 중계 |
+| 메서드   | 경로               | 설명                         |
+| -------- | ------------------ | ---------------------------- |
+| `POST`   | `/tasks`           | 작업 추가 `{ cwd, prompt }`  |
+| `GET`    | `/tasks`           | 전체 작업 목록 조회          |
+| `DELETE` | `/tasks/{id}`      | 실행 중인 작업 강제 종료     |
+| `WS`     | `/ws/{session_id}` | PTY ↔ 브라우저 바이너리 중계 |
