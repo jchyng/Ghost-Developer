@@ -542,7 +542,15 @@
       }
 
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') toggleModal(false);
+        if (e.key === 'Escape') {
+          // 디렉터리 브라우저가 열려 있으면 브라우저만 닫고 모달은 유지
+          const browser = document.getElementById('dir-browser');
+          if (!browser.classList.contains('hidden')) {
+            browser.classList.add('hidden');
+            return;
+          }
+          toggleModal(false);
+        }
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
           e.preventDefault();
           toggleModal(true);
