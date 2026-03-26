@@ -91,22 +91,38 @@ async def run_task(task: dict):
 
         # PTY 출력을 output 버퍼에 누적 (WS가 구독)
         async def drain():
+            empty_streak = 0
             while True:
                 try:
                     data = await loop.run_in_executor(None, proc.read, 4096)
                     if data:
+                        empty_streak = 0
                         encoded = data.encode("utf-8", errors="replace") if isinstance(data, str) else data
                         task["output"].extend(encoded)
                         task["output_event"].set()
+                    else:
+                        # 빈 읽기: 프로세스가 종료됐으면 루프 탈출
+                        empty_streak += 1
+                        if not proc.isalive() or empty_streak > 5:
+                            break
+                        await asyncio.sleep(0.05)
                 except Exception:
                     break
             task["output_event"].set()
 
-        asyncio.create_task(drain())
+        drain_task = asyncio.create_task(drain())
 
         # 프로세스 종료 대기
         while proc.isalive():
             await asyncio.sleep(0.3)
+
+        # proc 종료 후 drain()이 남은 PTY 출력을 다 읽을 때까지 대기 (최대 5초)
+        # proc.isalive()가 False가 되어도 winpty 버퍼에 아직 읽히지 않은
+        # 출력(e.g. claude 응답)이 남아 있을 수 있으므로 먼저 flush한다.
+        try:
+            await asyncio.wait_for(asyncio.shield(drain_task), timeout=5.0)
+        except asyncio.TimeoutError:
+            pass
 
         # 외부에서 cancel된 경우 status가 이미 "cancelled"
         if task["status"] != "cancelled":
