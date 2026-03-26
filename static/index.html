@@ -236,8 +236,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       cancelChat();
     }
     if (e.key === 'Escape') {
-      const overlay = document.getElementById('modal-overlay');
-      if (overlay && overlay.style.display !== 'none') closeNewChatModal();
+      const browser = document.getElementById('dir-browser');
+      if (browser && !browser.classList.contains('hidden')) {
+        browser.classList.add('hidden');
+        document.getElementById('modal-title').focus();
+      }
     }
   });
 });
