@@ -385,7 +385,7 @@ function renderMessages(messages) {
   scrollChat();
 }
 
-const SPARKLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`;
+const SPARKLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`;
 
 function addMessage(role, content, scroll = true) {
   document.getElementById('empty-state')?.remove();
@@ -394,25 +394,33 @@ function addMessage(role, content, scroll = true) {
   const wrap = document.createElement('div');
 
   if (role === 'user') {
-    // 유저 메시지: 오른쪽 정렬, 말풍선
-    wrap.className = 'flex justify-end pt-4 first:pt-0';
+    wrap.className = 'flex justify-end mb-2';
     wrap.innerHTML = `
-      <div class="max-w-[75%] flex flex-col items-end gap-1">
-        <span class="text-[0.6rem] uppercase tracking-widest text-on-surface-variant/60 pr-1">You</span>
-        <div class="bg-surface-low border border-[rgba(65,71,81,0.18)] rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed text-on-surface whitespace-pre-wrap break-words">
+      <div class="max-w-[60%] flex flex-col items-end gap-1">
+        <div class="px-4 py-2.5 text-sm leading-relaxed text-[#E5E2E1] whitespace-pre-wrap break-words
+                    rounded-2xl rounded-tr-[5px]
+                    bg-gradient-to-br from-[#1d2f47] to-[#14243a]
+                    border border-[#60A5FA]/12
+                    shadow-[0_2px_14px_rgba(96,165,250,0.09),inset_0_1px_0_rgba(255,255,255,0.025)]">
           ${esc(content)}
         </div>
+        <span class="text-[0.55rem] tracking-[0.18em] uppercase text-[#C1C7D3]/22 pr-0.5">You</span>
       </div>`;
   } else {
-    // AI 응답: 왼쪽 정렬, 아이콘 + 말풍선
-    wrap.className = 'flex gap-3 pt-2 first:pt-0';
+    wrap.className = 'flex gap-3 mb-6';
     wrap.innerHTML = `
-      <div class="w-7 h-7 rounded-full bg-[#0E1F18] flex items-center justify-center flex-shrink-0 mt-0.5 border border-secondary/20">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5
+                  bg-[#0c1d14] border border-[#45DFA4]/22
+                  shadow-[0_0_12px_rgba(69,223,164,0.09)]">
         ${SPARKLE_SVG}
       </div>
-      <div class="flex flex-col gap-1 min-w-0 flex-1">
-        <span class="text-[0.6rem] uppercase tracking-widest text-secondary/70">AI Agent</span>
-        <div class="text-sm leading-relaxed text-on-surface/90 whitespace-pre-wrap break-words">${renderMarkdownLite(content)}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[0.6rem] font-mono uppercase tracking-[0.14em] text-[#45DFA4]/50 mb-2.5">AI Agent</div>
+        <div class="px-4 py-3 rounded-xl rounded-tl-[5px]
+                    bg-[#161b1b] border border-[#414751]/22
+                    text-sm leading-[1.8] text-[#D4D1CF]/85 whitespace-pre-wrap break-words">
+          ${renderMarkdownLite(content)}
+        </div>
       </div>`;
   }
   inner.appendChild(wrap);
