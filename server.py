@@ -6,9 +6,16 @@ import sys
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+
+import db
+import orchestrator as orc
+
+load_dotenv()
 
 app = FastAPI()
 os.makedirs("static", exist_ok=True)
+db.init_db()
 
 sessions: dict = {}   # session_id -> PtyProcess  (수동 터미널)
 tasks: list = []       # 모든 작업 목록
@@ -323,6 +330,116 @@ async def list_tasks_api():
 @app.delete("/api/tasks/{task_id}")
 async def cancel_task_api(task_id: str):
     return await cancel_task(task_id)
+
+
+# ── v2 Chat API ───────────────────────────────────────────────────────────
+
+@app.post("/api/chats")
+async def create_chat(body: dict):
+    cwd = body.get("cwd", "")
+    title = body.get("title") or cwd or "New Chat"
+    return db.create_chat(cwd=cwd, title=title)
+
+
+@app.get("/api/chats")
+async def list_chats():
+    return db.list_chats()
+
+
+@app.get("/api/chats/{chat_id}")
+async def get_chat(chat_id: str):
+    chat = db.get_chat(chat_id)
+    if not chat:
+        return {"error": "not found"}, 404
+    return chat
+
+
+@app.delete("/api/chats/{chat_id}")
+async def delete_chat(chat_id: str):
+    db.delete_chat(chat_id)
+    return {"ok": True}
+
+
+@app.get("/api/chats/{chat_id}/messages")
+async def get_messages(chat_id: str):
+    return db.list_messages(chat_id)
+
+
+@app.post("/api/chats/{chat_id}/send")
+async def send_message(chat_id: str, body: dict):
+    """사용자 메시지를 받아 Orchestrator를 백그라운드로 실행한다."""
+    content = body.get("content", "").strip()
+    if not content:
+        return {"error": "empty message"}
+
+    chat = db.get_chat(chat_id)
+    if not chat:
+        return {"error": "chat not found"}
+
+    # 이미 실행 중인 Orchestrator가 있으면 거절
+    if orc.get_running(chat_id):
+        return {"error": "already running"}
+
+    # Orchestrator는 백그라운드 태스크로 실행
+    # 이벤트는 /ws/chats/{chat_id} 구독자에게 broadcast
+    asyncio.create_task(_run_orchestrator(chat_id, content))
+    return {"ok": True}
+
+
+@app.delete("/api/chats/{chat_id}/cancel")
+async def cancel_chat(chat_id: str):
+    """실행 중인 Orchestrator를 중단한다."""
+    instance = orc.get_running(chat_id)
+    if instance:
+        instance.cancel()
+        return {"ok": True}
+    return {"error": "not running"}
+
+
+# ── Chat WebSocket (이벤트 스트림) ────────────────────────────────────────
+
+# chat_id -> set of WebSocket subscribers
+_chat_subs: dict[str, set[WebSocket]] = {}
+
+
+@app.websocket("/ws/chats/{chat_id}")
+async def chat_ws(websocket: WebSocket, chat_id: str):
+    await websocket.accept()
+    _chat_subs.setdefault(chat_id, set()).add(websocket)
+    try:
+        # 연결 즉시 기존 메시지 히스토리 전송
+        messages = db.list_messages(chat_id)
+        await websocket.send_text(json.dumps({"type": "history", "messages": messages}))
+
+        # 클라이언트가 연결을 끊을 때까지 대기
+        while True:
+            msg = await websocket.receive()
+            if msg["type"] == "websocket.disconnect":
+                break
+    except (WebSocketDisconnect, Exception):
+        pass
+    finally:
+        _chat_subs.get(chat_id, set()).discard(websocket)
+
+
+async def _broadcast(chat_id: str, event: dict):
+    """해당 chat의 모든 WebSocket 구독자에게 이벤트를 전송한다."""
+    dead = set()
+    for ws in _chat_subs.get(chat_id, set()):
+        try:
+            await ws.send_text(json.dumps(event))
+        except Exception:
+            dead.add(ws)
+    _chat_subs.get(chat_id, set()).difference_update(dead)
+
+
+async def _run_orchestrator(chat_id: str, user_message: str):
+    instance = orc.Orchestrator(chat_id)
+
+    async def on_event(event: dict):
+        await _broadcast(chat_id, event)
+
+    await instance.run(user_message, on_event)
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

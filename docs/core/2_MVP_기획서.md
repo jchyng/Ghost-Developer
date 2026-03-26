@@ -53,15 +53,24 @@ Claude Code (headless)
 ### B. Orchestrator 루프
 
 1. 사용자 메시지 수신
-2. `claude -p "지시" --session-id X --dangerously-skip-permissions --output-format json` 호출
+2. `claude -p "지시" --resume X --dangerously-skip-permissions --output-format stream-json --verbose` 호출
 3. JSON 응답 파싱 (결과, tool use 목록, token usage)
 4. 결과를 채팅창에 표시
-5. 작업 완료 판단 → 완료 아니면 2로 반복
+5. **작업 완료 판단** → 완료 아니면 2로 반복
+
+**작업 완료 판단 기준:**
+- JSON 응답에 더 이상 수행할 tool_use가 없고, 응답 텍스트가 작업 완료를 나타낼 때
+- Orchestrator(gpt-5.4-mini)가 Claude Code의 마지막 응답을 읽고 "완료됐는지"를 판단
+- 판단 불가 시 사용자에게 채팅으로 확인 요청
 
 **session_id 관리:**
 - 첫 호출 시 `--output-format json`으로 session_id 추출, DB 저장
 - 이후 모든 호출에 `--session-id X` 사용 → 대화 연속성 유지
 - 서버 재시작, 브라우저 새로고침 후에도 동일 session 재개 가능
+
+**Chat 세션 생성:**
+- "New Chat" 클릭 → cwd(작업 디렉토리) 입력 → 채팅 시작
+- cwd는 이후 모든 claude -p 호출의 working directory로 사용
 
 ### C. 컨텍스트 관리
 
@@ -79,8 +88,11 @@ Claude Code (headless)
 ### E. 멀티 터미널 (Chat 세션 소속)
 
 **터미널 패널 구성:**
-- `[Claude Code]` 탭: Orchestrator가 보낸 claude -p 명령 + 응답 로그. 사용자가 직접 타이핑하면 해당 session_id로 즉시 전송 (Orchestrator 우회, 단 Orchestrator도 인지)
+- `[Claude Code]` 탭: Orchestrator가 보낸 `claude -p` 명령과 응답을 실시간 로그로 표시 (읽기 전용 뷰 + 직접 입력 가능)
+  - 사용자가 직접 타이핑 → `claude -p "입력 내용" --session-id X`로 즉시 전송 (Orchestrator 우회)
+  - 단, 직접 입력한 내용과 그 응답은 Orchestrator의 다음 컨텍스트에 자동 포함
 - `[+]` 탭: Orchestrator 또는 사용자가 추가하는 보조 PTY 터미널 (dev server, test runner 등)
+  - 일반 PTY 세션으로, 양방향 입출력 가능 (기존 Shell 탭과 동일한 방식)
 
 **리소스 관리:**
 - 미사용 PTY 터미널 자동 종료 (tmux 방식: 프로세스 종료, scrollback은 DB 보존)
@@ -93,8 +105,10 @@ Claude Code (headless)
 
 ### F. git Auto-Commit (v1에서 유지)
 
-- Chat 세션의 첫 Claude Code 호출 전: `Auto-commit: Before [task]`
-- 작업 완료 후: `Auto-commit: After [task]`
+- **트리거**: 사용자가 채팅에 메시지를 보낼 때마다 (= Orchestrator가 Claude Code를 처음 호출하기 직전)
+- Before: `Auto-commit: Before [사용자 메시지 앞 50자]`
+- After: `Auto-commit: After [사용자 메시지 앞 50자]` (Orchestrator가 작업 완료 판단 후)
+- cwd는 Chat 세션에 설정된 경로 사용
 
 ### G. 동시 실행
 

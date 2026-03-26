@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kinetic Monolith Reference</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              lowest: '#0E0E0E',
+              DEFAULT: '#131313',
+              low: '#1C1B1B',
+              high: '#2A2A2A',
+              variant: '#353534',
+            },
+            primary: {
+              DEFAULT: '#A4C9FF',
+              container: '#60A5FA',
+            },
+            secondary: {
+              DEFAULT: '#45DFA4',
+              container: '#00BD85',
+            },
+            'on-surface': {
+              DEFAULT: '#E5E2E1',
+              variant: '#C1C7D3',
+            },
+            'outline-variant': '#414751',
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      background-color: #131313;
+      color: #E5E2E1;
+    }
+    /* Custom scrollbar for webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #353534;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #414751;
+    }
+  </style>
+</head>
+<body class="flex h-screen w-full bg-surface text-on-surface font-sans overflow-hidden selection:bg-primary-container/30">
+
+  <!-- Sidebar - Desktop -->
+  <aside class="hidden md:flex flex-col w-[280px] bg-surface-lowest flex-shrink-0 border-r border-outline-variant/10">
+    <div class="p-4 flex items-center gap-2">
+      <i data-lucide="sparkles" class="w-5 h-5 text-secondary"></i>
+      <span class="font-medium tracking-tight text-lg">AI Company</span>
+      <button class="ml-auto text-on-surface-variant hover:text-on-surface transition-colors">
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <div class="px-4 py-2">
+      <button class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md border border-outline-variant/15 hover:bg-surface-high transition-colors text-sm font-medium">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        New Chat
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto py-4">
+      <div class="px-4 mb-2 text-[0.6875rem] uppercase tracking-widest text-on-surface-variant font-semibold">
+        Recent Chats
+      </div>
+      <nav class="flex flex-col gap-1">
+        <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface bg-surface-low/50">
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-secondary rounded-r-full shadow-[0_0_8px_rgba(69,223,164,0.4)]"></div>
+          <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="message-square" class="w-4 h-4"></i></span>
+          <span class="truncate">/workspaces/kinetic-...</span>
+        </button>
+        <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30">
+          <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="clock" class="w-4 h-4"></i></span>
+          <span class="truncate">Recent Chats 2</span>
+        </button>
+        <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30">
+          <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="clock" class="w-4 h-4"></i></span>
+          <span class="truncate">Recent Chats 3</span>
+        </button>
+        <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30">
+          <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="message-square" class="w-4 h-4"></i></span>
+          <span class="truncate">/workspaces/kinetic-...</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="p-4 flex flex-col gap-1 mt-auto">
+      <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30">
+        <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span>
+        <span class="truncate">Dashboard</span>
+      </button>
+      <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30">
+        <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="box" class="w-4 h-4"></i></span>
+        <span class="truncate">Model Library</span>
+      </button>
+      <button class="w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors relative group text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30">
+        <span class="opacity-70 group-hover:opacity-100 transition-opacity"><i data-lucide="settings" class="w-4 h-4"></i></span>
+        <span class="truncate">Settings</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col min-w-0 relative">
+    <!-- Top Bar -->
+    <header class="h-14 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10">
+      <div class="flex items-center gap-2 text-sm text-on-surface-variant">
+        <button class="md:hidden p-2 -ml-2 text-on-surface hover:bg-surface-low rounded-md">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <i data-lucide="home" class="w-4 h-4 hidden md:block"></i>
+        <i data-lucide="chevron-right" class="w-3 h-3 hidden md:block"></i>
+        <span class="hidden md:block">Context</span>
+        <i data-lucide="chevron-right" class="w-3 h-3 hidden md:block"></i>
+        <span class="font-mono text-xs text-on-surface bg-surface-low px-2 py-1 rounded-md">/workspaces/kinetic-core</span>
+      </div>
+      <button class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-red-900/30 text-red-400 text-xs font-mono hover:bg-red-900/10 transition-colors">
+        <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+        INTERRUPT (CTRL+C)
+      </button>
+    </header>
+
+    <!-- Scrollable Workspace -->
+    <div class="flex-1 overflow-y-auto flex flex-col">
+      <!-- Chat Area -->
+      <div class="flex-1 p-4 md:p-8 flex flex-col gap-6 max-w-4xl mx-auto w-full">
+        <!-- User Message -->
+        <div class="flex gap-4 bg-surface-low/50 p-4 rounded-xl border border-outline-variant/10">
+          <img src="https://picsum.photos/seed/user/32/32" alt="User" class="w-8 h-8 rounded-full object-cover flex-shrink-0" referrerpolicy="no-referrer" />
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-on-surface-variant mb-1">You</span>
+            <p class="text-sm leading-relaxed">Computer the utix AI conmionenti:emal the hintier commands?</p>
+          </div>
+        </div>
+
+        <!-- AI Message -->
+        <div class="flex gap-4 p-4">
+          <div class="w-8 h-8 rounded-full bg-surface-high flex items-center justify-center flex-shrink-0 border border-outline-variant/20">
+            <i data-lucide="sparkles" class="w-4 h-4 text-secondary"></i>
+          </div>
+          <div class="flex flex-col w-full">
+            <span class="text-xs font-medium text-on-surface-variant mb-1">AI Agent</span>
+            <p class="text-sm leading-relaxed mb-4">
+              This is the AI Agent respond, to complete a th in in term ned tn sampte plan.
+            </p>
+            <div class="text-sm space-y-2 text-on-surface/90">
+              <p>1. Thin aiiteetical plans:</p>
+              <ul class="list-disc pl-5 space-y-1 text-on-surface-variant">
+                <li>Developing or comp.noes upon decadiil a modo.</li>
+                <li>Developing Reattored in.thonwebtoken exponuons.</li>
+                <li>Prooecting npm install jsonwebtoken @types/jsonwebtoken.</li>
+                <li>Developing an munor inference oot users its objectives.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal Area (Docked at bottom of scroll area) -->
+      <div class="mt-auto border-t border-outline-variant/15 bg-[#050505] flex flex-col flex-shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.3)]">
+        <!-- Terminal Tabs -->
+        <div class="flex items-center px-2 pt-2 gap-1 bg-surface-lowest">
+          <div class="px-4 py-2 bg-[#050505] text-xs font-mono text-on-surface rounded-t-md border-t border-x border-outline-variant/15 flex items-center gap-2">
+            [Claude Code]
+          </div>
+          <button class="p-2 text-on-surface-variant hover:text-on-surface transition-colors">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+          <div class="ml-auto p-2">
+            <div class="w-8 h-1 rounded-full bg-outline-variant/30"></div>
+          </div>
+        </div>
+
+        <!-- Terminal Content -->
+        <div class="p-4 font-mono text-[13px] leading-relaxed h-[200px] overflow-y-auto">
+          <div class="text-on-surface-variant mb-1">[SYSTEM] Agent initialized...</div>
+          <div class="text-yellow-500/90 mb-1">[THINKING] Refactoring... ...</div>
+          <div class="text-primary-container mb-2">[EXECUTING] npm install jsonwebtoken @types/jsonwebtoken</div>
+
+          <!-- Progress Bar -->
+          <div class="w-full max-w-md h-1.5 bg-surface-high rounded-full overflow-hidden mb-4 border border-outline-variant/10">
+            <div class="h-full bg-gradient-to-r from-primary to-primary-container w-[65%] shadow-[0_0_10px_rgba(96,165,250,0.5)]"></div>
+          </div>
+
+          <div class="text-primary-container mb-1">[EXECUTING] npm install jsonwebtoken @types/jsonwebtoken</div>
+          <div class="flex items-center mt-2">
+            <span class="w-2 h-4 bg-on-surface animate-pulse inline-block"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area (Fixed at bottom) -->
+    <div class="p-4 bg-surface-lowest border-t border-outline-variant/15 z-20">
+      <div class="max-w-4xl mx-auto relative flex items-end gap-2 bg-surface-low rounded-xl border border-outline-variant/20 p-2 focus-within:border-secondary/50 focus-within:shadow-[0_0_15px_rgba(69,223,164,0.1)] transition-all">
+        <textarea
+          placeholder="Ask the AI agent to do something..."
+          class="w-full bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/50 resize-none outline-none min-h-[40px] max-h-[200px] py-2 px-3"
+          rows="1"
+        ></textarea>
+        <div class="flex items-center gap-1 pb-1 pr-1 flex-shrink-0">
+          <button class="p-2 text-on-surface-variant hover:text-on-surface transition-colors rounded-lg hover:bg-surface-high">
+            <i data-lucide="paperclip" class="w-4 h-4"></i>
+          </button>
+          <button class="p-2 text-on-surface-variant hover:text-on-surface transition-colors rounded-lg hover:bg-surface-high hidden sm:block">
+            <i data-lucide="mic" class="w-4 h-4"></i>
+          </button>
+          <button class="p-2 bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E] rounded-lg hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(96,165,250,0.2)]">
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="md:hidden flex items-center justify-around p-3 bg-surface-lowest border-t border-outline-variant/15 pb-safe">
+      <button class="flex flex-col items-center gap-1 p-2 min-w-[64px] text-on-surface">
+        <i data-lucide="message-square" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Chat</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 p-2 min-w-[64px] text-on-surface-variant">
+        <i data-lucide="terminal-square" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Terminal</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 p-2 min-w-[64px] text-on-surface-variant">
+        <i data-lucide="box" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Projects</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 p-2 min-w-[64px] text-on-surface-variant">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Settings</span>
+      </button>
+    </nav>
+  </main>
+
+  <!-- Initialize Lucide Icons -->
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
