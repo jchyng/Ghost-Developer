@@ -318,45 +318,68 @@
       let currentSession = null;
       let tasksList = [];
 
-      // ── Terminal init ────────────────────────────────────────────────────
-      const term = new Terminal({
-        cursorBlink: true,
-        fontSize: 14,
-        fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", monospace',
-        theme: {
-          background: '#000000',
-          foreground: '#e5e2e1',
-          cursor: '#45dfa4',
-          cursorAccent: '#000000',
-          selectionBackground: 'rgba(96, 165, 250, 0.3)',
-        },
-      });
-      const fitAddon = new FitAddon.FitAddon();
-      term.loadAddon(fitAddon);
-      term.open(document.getElementById('terminal'));
-      fitAddon.fit();
-      window.addEventListener('resize', () => fitAddon.fit());
+      // ── Per-session terminal registry ─────────────────────────────────────
+      const terminals = {};
 
-      // ── Terminal input (shell only) ──────────────────────────────────────
-      term.onData((data) => {
-        if (ws?.readyState === WebSocket.OPEN && currentSession?.startsWith('shell')) {
-          ws.send(new TextEncoder().encode(data));
-        }
-      });
-      term.onResize(({ cols, rows }) => {
-        if (ws?.readyState === WebSocket.OPEN && currentSession?.startsWith('shell')) {
-          ws.send(JSON.stringify({ type: 'resize', cols, rows }));
-        }
+      function getOrCreateTerminal(sessionId) {
+        if (terminals[sessionId]) return terminals[sessionId];
+
+        const el = document.createElement('div');
+        el.style.cssText = 'width:100%;height:100%;display:none;';
+        document.getElementById('terminal').appendChild(el);
+
+        const t = new Terminal({
+          cursorBlink: true,
+          fontSize: 14,
+          fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", monospace',
+          theme: {
+            background: '#000000',
+            foreground: '#e5e2e1',
+            cursor: '#45dfa4',
+            cursorAccent: '#000000',
+            selectionBackground: 'rgba(96, 165, 250, 0.3)',
+          },
+        });
+        const fa = new FitAddon.FitAddon();
+        t.loadAddon(fa);
+        t.open(el);
+        fa.fit();
+
+        // 셸 전용: 키 입력을 이 인스턴스에 바인딩
+        t.onData(data => {
+          if (ws?.readyState === WebSocket.OPEN && currentSession === sessionId && sessionId.startsWith('shell')) {
+            ws.send(new TextEncoder().encode(data));
+          }
+        });
+        t.onResize(({ cols, rows }) => {
+          if (ws?.readyState === WebSocket.OPEN && currentSession === sessionId && sessionId.startsWith('shell')) {
+            ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+          }
+        });
+
+        terminals[sessionId] = { term: t, fitAddon: fa, el };
+        return terminals[sessionId];
+      }
+
+      window.addEventListener('resize', () => {
+        Object.values(terminals).forEach(({ fitAddon, el }) => {
+          if (el.style.display !== 'none') fitAddon.fit();
+        });
       });
 
       // ── WebSocket connect ─────────────────────────────────────────────────
       function connectTo(sessionId) {
         if (ws) { ws.close(); ws = null; }
         currentSession = sessionId;
-        term.clear();
+
+        // 모든 터미널 숨기기, 현재 세션 터미널 표시
+        Object.values(terminals).forEach(({ el }) => { el.style.display = 'none'; });
+        const { term, fitAddon } = getOrCreateTerminal(sessionId);
+        terminals[sessionId].el.style.display = 'block';
+        fitAddon.fit();
+
         updateHeader(sessionId);
         updateActiveTab(sessionId);
-
         updateStopBtn(sessionId);
 
         ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
@@ -366,12 +389,12 @@
             ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
           }
         };
-        ws.onmessage = (e) => term.write(new Uint8Array(e.data));
+        ws.onmessage = (e) => terminals[sessionId].term.write(new Uint8Array(e.data));
         // 세션 ID를 클로저에 캡처해 전환 후 발생하는 이전 세션의 onclose가
         // 새 세션 터미널을 오염시키지 않도록 한다 (race condition 방지)
         const ownSession = sessionId;
-        ws.onclose = () => { if (currentSession === ownSession) term.write('\r\n\x1b[90m[disconnected]\x1b[0m\r\n'); };
-        ws.onerror = () => { if (currentSession === ownSession) term.write('\r\n\x1b[31m[connection error]\x1b[0m\r\n'); };
+        ws.onclose = () => { if (currentSession === ownSession) terminals[ownSession]?.term.write('\r\n\x1b[90m[disconnected]\x1b[0m\r\n'); };
+        ws.onerror = () => { if (currentSession === ownSession) terminals[ownSession]?.term.write('\r\n\x1b[31m[connection error]\x1b[0m\r\n'); };
       }
 
       // ── Header update ────────────────────────────────────────────────────
@@ -489,6 +512,12 @@
       async function removeShell(id, e) {
         e.stopPropagation();
         await fetch(`/api/shells/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        // 터미널 인스턴스 정리
+        if (terminals[id]) {
+          terminals[id].term.dispose();
+          terminals[id].el.remove();
+          delete terminals[id];
+        }
         shellSessions = shellSessions.filter(s => s.id !== id);
         if (currentSession === id) {
           const fallback = shellSessions[shellSessions.length - 1];
