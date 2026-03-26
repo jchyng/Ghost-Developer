@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import subprocess
 import sys
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -30,15 +31,17 @@ def spawn_pty(cmd, cwd=None, dimensions=(24, 80)):
 # ── Git Auto-commit ───────────────────────────────────────────────────────
 
 async def git_commit(cwd: str, message: str, output_buf: bytearray | None = None):
+    # asyncio.create_subprocess_exec + PIPE 조합이 Windows에서 불안정하므로
+    # subprocess.run을 스레드 executor에서 실행한다.
+    loop = asyncio.get_event_loop()
+
+    def _run(args):
+        return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
     for args in (["git", "add", "."], ["git", "commit", "-m", message]):
-        p = await asyncio.create_subprocess_exec(
-            *args, cwd=cwd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        _, err = await p.communicate()
-        if output_buf is not None and err:
-            line = f"\r\n\x1b[90m[git] {err.decode(errors='replace').strip()}\x1b[0m\r\n"
+        result = await loop.run_in_executor(None, _run, args)
+        if output_buf is not None and result.stderr:
+            line = f"\r\n\x1b[90m[git] {result.stderr.strip()}\x1b[0m\r\n"
             output_buf.extend(line.encode())
 
 
@@ -59,7 +62,10 @@ async def run_task(task: dict):
         task["output"] = bytearray()
         task["output_event"] = asyncio.Event()
 
-        await git_commit(cwd, f"Auto-commit: Before {task['prompt'][:50]}", task["output"])
+        try:
+            await git_commit(cwd, f"Auto-commit: Before {task['prompt'][:50]}", task["output"])
+        except Exception as e:
+            task["output"].extend(f"\r\n\x1b[90m[git error] {e}\x1b[0m\r\n".encode())
 
         safe_prompt = task["prompt"].replace('"', "'")
         if sys.platform == "win32":
@@ -107,7 +113,10 @@ async def run_task(task: dict):
             task["status"] = "done"
         task["output_event"].set()
 
-        await git_commit(cwd, f"Auto-commit: After {task['prompt'][:50]}", task["output"])
+        try:
+            await git_commit(cwd, f"Auto-commit: After {task['prompt'][:50]}", task["output"])
+        except Exception as e:
+            task["output"].extend(f"\r\n\x1b[90m[git error] {e}\x1b[0m\r\n".encode())
 
 
 # ── 파일시스템 브라우저 ────────────────────────────────────────────────────
