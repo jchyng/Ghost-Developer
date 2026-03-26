@@ -263,6 +263,7 @@ function selectChat(chatId, chat) {
 
   // Reconnect WebSocket
   if (chatWs) { chatWs.close(); chatWs = null; }
+  _historyLoaded = false;
   connectChatWs(chatId);
 
   // Clear chat area (keep empty state hidden)
@@ -283,10 +284,16 @@ function connectChatWs(chatId) {
 }
 
 // ── Chat Event Handler ────────────────────────────────────────────────────
+let _historyLoaded = false;
+
 function handleChatEvent(e) {
   switch (e.type) {
     case 'history':
-      renderMessages(e.messages);
+      // 첫 연결 시에만 히스토리 렌더링 — 재연결 시 중복 방지
+      if (!_historyLoaded) {
+        _historyLoaded = true;
+        renderMessages(e.messages);
+      }
       break;
     case 'system':
       writeLog(`\x1b[90m${e.text}\x1b[0m\r\n`);
@@ -386,11 +393,12 @@ async function sendMessage() {
   const content = input.value.trim();
   if (!content || !activeChatId || isRunning) return;
 
+  // 즉시 잠금 — 버튼 중복 클릭 / Enter 동시 입력 방지
+  setRunning(true);
   input.value = '';
   autoResize(input);
 
   addMessage('user', content);
-  setRunning(true);
 
   // Show terminal panel automatically
   if (!termVisible) showTerminal();

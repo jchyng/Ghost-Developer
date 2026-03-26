@@ -380,9 +380,12 @@ async def send_message(chat_id: str, body: dict):
     if orc.get_running(chat_id):
         return {"error": "already running"}
 
+    # _running을 즉시 선점해 race condition 방지 (task 시작 전에 두 번째 요청 차단)
+    sentinel = orc.Orchestrator(chat_id)
+    orc._running[chat_id] = sentinel
+
     # Orchestrator는 백그라운드 태스크로 실행
-    # 이벤트는 /ws/chats/{chat_id} 구독자에게 broadcast
-    asyncio.create_task(_run_orchestrator(chat_id, content))
+    asyncio.create_task(_run_orchestrator(chat_id, content, sentinel))
     return {"ok": True}
 
 
@@ -433,9 +436,7 @@ async def _broadcast(chat_id: str, event: dict):
     _chat_subs.get(chat_id, set()).difference_update(dead)
 
 
-async def _run_orchestrator(chat_id: str, user_message: str):
-    instance = orc.Orchestrator(chat_id)
-
+async def _run_orchestrator(chat_id: str, user_message: str, instance: orc.Orchestrator):
     async def on_event(event: dict):
         await _broadcast(chat_id, event)
 

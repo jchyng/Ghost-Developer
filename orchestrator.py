@@ -42,7 +42,7 @@ class Orchestrator:
         self._cancelled = True
 
     async def run(self, user_message: str, on_event: EventCallback):
-        _running[self.chat_id] = self
+        # _running 등록은 호출자(server.py)가 이미 선점했으므로 여기선 정리만 담당
         try:
             await self._run(user_message, on_event)
         finally:
