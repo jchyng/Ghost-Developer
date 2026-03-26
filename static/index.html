@@ -39,7 +39,7 @@
     .chat-item.active .pipe { opacity: 1; }
     .pipe { opacity: 0; }
     .msg-user { background: rgba(28,27,27,0.5); border: 1px solid rgba(65,71,81,0.1); border-radius: 0.75rem; }
-    .tab-active { background: #0E0E0E; border-top: 1px solid rgba(65,71,81,0.2); border-left: 1px solid rgba(65,71,81,0.2); border-right: 1px solid rgba(65,71,81,0.2); }
+    .tab-active { background: #0E0E0E; border-top: 1px solid; border-left: 1px solid rgba(65,71,81,0.2); border-right: 1px solid rgba(65,71,81,0.2); }
     .tab-inactive { background: transparent; color: #C1C7D3; }
   </style>
 </head>
@@ -438,7 +438,7 @@ async function cancelChat() {
 // ── Terminal Panel ────────────────────────────────────────────────────────
 function ensureLogTab() {
   if (tabs.find(t => t.kind === 'log')) return;
-  const tab = { id: 'log', label: '[Claude Code]', kind: 'log', term: null, fitAddon: null, ws: null };
+  const tab = { id: 'log', label: 'Agent Log', kind: 'log', color: '#45DFA4', term: null, fitAddon: null, ws: null };
   tabs.push(tab);
   renderTabs();
   if (!activeTabId) activateTab('log');
@@ -448,9 +448,13 @@ function renderTabs() {
   const bar = document.getElementById('term-tabs');
   bar.innerHTML = '';
   tabs.forEach(tab => {
+    const isActive = tab.id === activeTabId;
+    const color = tab.color || '#C1C7D3';
     const btn = document.createElement('button');
-    btn.className = `px-4 py-1.5 text-xs font-mono rounded-t-md transition-colors ${tab.id === activeTabId ? 'tab-active text-on-surface' : 'tab-inactive hover:text-on-surface'}`;
-    btn.textContent = tab.label;
+    btn.className = `px-3 py-1.5 text-xs font-mono rounded-t-md transition-colors flex items-center gap-1.5 ${isActive ? 'tab-active text-on-surface' : 'tab-inactive hover:text-on-surface'}`;
+    if (isActive) btn.style.borderTopColor = color;
+    const dot = `<span style="font-size:8px; color:${color}; ${isActive ? `filter:drop-shadow(0 0 3px ${color})` : 'opacity:0.35'}">●</span>`;
+    btn.innerHTML = `${dot}${esc(tab.label)}`;
     btn.onclick = () => activateTab(tab.id);
     bar.appendChild(btn);
   });
@@ -501,7 +505,7 @@ function activateTab(tabId) {
 
     if (tab.kind === 'pty') connectPtyWs(tab);
     if (tab.kind === 'log') {
-      term.write('\x1b[90m[Claude Code terminal ready]\x1b[0m\r\n');
+      term.write('\x1b[90m[Agent Log ready — AI activity will appear here]\x1b[0m\r\n');
     }
 
     // re-fit on panel resize
@@ -520,7 +524,7 @@ function writeLog(text) {
 function addPtyTab() {
   const id = 'pty-' + Date.now();
   const label = `Shell ${tabs.filter(t => t.kind === 'pty').length + 1}`;
-  tabs.push({ id, label, kind: 'pty', term: null, fitAddon: null, ws: null });
+  tabs.push({ id, label, kind: 'pty', color: '#60A5FA', term: null, fitAddon: null, ws: null });
   renderTabs();
   activateTab(id);
   if (!termVisible) showTerminal();
