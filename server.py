@@ -254,10 +254,17 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
         except (WebSocketDisconnect, Exception):
             pass
         finally:
-            proc.close()
-            sessions.pop(session_id, None)
+            pass  # PTY는 WS 단절 시 유지; DELETE /api/shells/{id} 로만 종료
 
     await asyncio.gather(pty_to_ws(), ws_to_pty(), return_exceptions=True)
+
+
+@app.delete("/api/shells/{session_id}")
+async def close_shell(session_id: str):
+    proc = sessions.pop(session_id, None)
+    if proc and proc.isalive():
+        proc.close()
+    return {"ok": True}
 
 
 @app.post("/api/tasks")
