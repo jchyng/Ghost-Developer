@@ -180,12 +180,12 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
             await websocket.close()
             return
 
-        # 연결 즉시 대기 메시지 출력 (터미널이 비어 보이지 않도록)
-        await websocket.send_bytes(b"\r\n\x1b[90m[\xec\x9e\xa0\xec\x8b\x9c \xeb\x8c\x80\xea\xb8\xb0 \xec\xa4\x91...]\x1b[0m\r\n")
-
         # run_task가 output_event를 초기화할 때까지 대기
-        while task["output_event"] is None:
-            await asyncio.sleep(0.1)
+        # 기존 출력이 없을 때만 대기 메시지 출력 (재연결 시 중복 방지)
+        if task["output_event"] is None:
+            await websocket.send_bytes(b"\r\n\x1b[90m[\xec\x9e\xa0\xec\x8b\x9c \xeb\x8c\x80\xea\xb8\xb0 \xec\xa4\x91...]\x1b[0m\r\n")
+            while task["output_event"] is None:
+                await asyncio.sleep(0.1)
 
         # 기존 누적 출력 재생
         pos = len(task["output"])
