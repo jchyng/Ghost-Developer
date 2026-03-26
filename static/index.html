@@ -112,8 +112,8 @@
   <div class="flex-1 flex flex-col min-h-0">
 
     <!-- Chat Messages -->
-    <div id="chat-area" class="flex-1 overflow-y-auto py-8">
-      <div id="chat-inner" class="max-w-2xl mx-auto px-8 flex flex-col">
+    <div id="chat-area" class="flex-1 overflow-y-auto py-2 select-text cursor-text">
+      <div id="chat-inner" class="max-w-[900px] mx-auto px-4 flex flex-col gap-0">
         <!-- Empty state -->
         <div id="empty-state" class="flex flex-col items-center justify-center text-on-surface-variant gap-3 py-32">
           <i data-lucide="sparkles" class="w-10 h-10 opacity-20"></i>
@@ -139,19 +139,21 @@
   </div><!-- /chat+terminal -->
 
   <!-- Input Bar -->
-  <div class="px-6 py-3 bg-surface-lowest border-t border-[rgba(65,71,81,0.12)] flex-shrink-0">
-    <div id="input-wrap"
-      class="flex items-end gap-2 bg-surface-low rounded-xl border border-[rgba(65,71,81,0.2)] px-3 py-2
-             focus-within:border-secondary/40 focus-within:shadow-[0_0_12px_rgba(69,223,164,0.08)] transition-all">
-      <textarea id="msg-input" rows="1" placeholder="Ask the AI agent to do something..."
-        class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/40
-               resize-none outline-none min-h-[36px] max-h-[160px] py-1 self-center"
-        onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
-      <button onclick="sendMessage()"
-        class="p-2 rounded-lg bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E]
-               hover:opacity-90 transition-opacity flex-shrink-0">
-        <i data-lucide="send" class="w-4 h-4"></i>
-      </button>
+  <div class="px-8 pt-3 pb-5 flex-shrink-0">
+    <div class="max-w-[900px] mx-auto">
+      <div id="input-wrap"
+        class="flex items-end gap-3 bg-surface-low rounded-2xl border border-[rgba(65,71,81,0.22)] px-4 py-3
+               focus-within:border-[rgba(65,71,81,0.5)] transition-all duration-200">
+        <textarea id="msg-input" rows="1" placeholder="Ask the AI agent to do something..."
+          class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-[rgba(193,199,211,0.35)]
+                 resize-none outline-none min-h-[24px] max-h-[160px] leading-relaxed self-center"
+          onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
+        <button onclick="sendMessage()"
+          class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E]
+                 hover:opacity-85 active:scale-95 transition-all duration-150 flex-shrink-0 flex items-center justify-center">
+          <i data-lucide="arrow-up" class="w-4 h-4"></i>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -394,27 +396,22 @@ function addMessage(role, content, scroll = true) {
   const wrap = document.createElement('div');
 
   if (role === 'user') {
-    wrap.className = 'flex justify-end mb-4';
+    wrap.className = 'flex justify-end mt-2 mb-0.5';
     wrap.innerHTML = `
-      <div class="max-w-[68%] px-5 py-4 text-sm leading-relaxed text-[#E5E2E1]
-                  whitespace-pre-wrap break-words rounded-3xl
-                  bg-[#1c2a22] border border-[#45DFA4]/10">
-        ${esc(content)}
-      </div>`;
+      <div class="max-w-[75%] px-3 py-1.5 text-sm leading-normal text-[#E5E2E1]
+                  whitespace-pre-wrap break-words rounded-lg
+                  bg-[#232323] border border-[rgba(65,71,81,0.22)]">${esc(content)}</div>`;
   } else {
-    wrap.className = 'mb-8';
+    wrap.className = 'mt-0.5 mb-2';
     wrap.innerHTML = `
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-                    bg-[#0c1d14] border border-[#45DFA4]/30
-                    shadow-[0_0_14px_rgba(69,223,164,0.12)]">
+      <div class="flex items-center gap-2 mb-1.5">
+        <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
+                    bg-surface-lowest border border-[rgba(65,71,81,0.3)]">
           ${SPARKLE_SVG}
         </div>
-        <span class="text-[0.82rem] font-medium text-[#E5E2E1]/65">AI Agent</span>
+        <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">AI Agent</span>
       </div>
-      <div class="pl-11 text-sm leading-[1.9] text-[#D4D1CF]/88 whitespace-pre-wrap break-words">
-        ${renderMarkdownLite(content)}
-      </div>`;
+      <div class="pl-8 text-sm leading-[1.75] text-[#D4D1CF]/90 whitespace-pre-wrap break-words">${renderMarkdownLite(content)}</div>`;
   }
   inner.appendChild(wrap);
   if (scroll) scrollChat();
