@@ -72,8 +72,10 @@ async def run_task(task: dict):
             # claude.exe는 Node.js 런처이므로 winpty 직접 스폰 시 자식 프로세스가
             # PTY 콘솔에서 분리되어 proc.read()에 출력이 잡히지 않음.
             # PowerShell을 PTY 루트로 경유하면 shell 세션과 동일하게 동작함.
+            # -NonInteractive 플래그 사용 시 Node.js(claude) 출력이 winpty에 캡처되지
+            # 않으므로 제거한다.
             safe_prompt_ps = safe_prompt.replace("'", "''")
-            cmd = f"powershell.exe -NoProfile -NoLogo -NonInteractive -Command \"claude --dangerously-skip-permissions -p '{safe_prompt_ps}'\""
+            cmd = f"powershell.exe -NoProfile -NoLogo -Command \"claude --dangerously-skip-permissions -p '{safe_prompt_ps}'\""
         else:
             cmd = f'claude --dangerously-skip-permissions -p "{safe_prompt}"'
 
