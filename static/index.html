@@ -164,9 +164,41 @@
     <div class="flex flex-col gap-3">
       <div>
         <label class="text-[0.65rem] uppercase tracking-widest text-on-surface-variant block mb-1">Working Directory</label>
-        <input id="modal-cwd" type="text" placeholder="C:\dev\my-project"
-          class="w-full bg-surface rounded-md border border-[rgba(65,71,81,0.2)] px-3 py-2 text-sm font-mono outline-none
-                 focus:border-secondary/50 transition-colors" />
+        <div class="relative">
+          <div class="flex gap-2">
+            <input id="modal-cwd" type="text" placeholder="C:\dev\my-project" autocomplete="off"
+              class="flex-1 bg-surface rounded-md border border-[rgba(65,71,81,0.2)] px-3 py-2 text-sm font-mono outline-none
+                     focus:border-secondary/50 transition-colors" />
+            <button type="button" onclick="openBrowser()"
+              class="bg-surface hover:bg-surface-high border border-[rgba(65,71,81,0.2)] px-3 rounded-md text-on-surface-variant hover:text-on-surface transition-colors flex-shrink-0 flex items-center"
+              title="Browse directories">
+              <i data-lucide="folder-open" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <!-- Directory browser popover -->
+          <div id="dir-browser" class="hidden absolute top-full left-0 right-0 mt-1 z-20 overflow-hidden
+               bg-surface-lowest border border-[rgba(65,71,81,0.25)] rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <div class="flex items-center gap-1 px-2 py-2 bg-surface border-b border-[rgba(65,71,81,0.15)]">
+              <button type="button" onclick="goHome()" title="Home"
+                class="p-1 rounded text-on-surface-variant hover:text-secondary transition-colors">
+                <i data-lucide="home" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="goUp()" title="Up"
+                class="p-1 rounded text-on-surface-variant hover:text-on-surface transition-colors">
+                <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+              </button>
+              <span id="browser-path" class="text-[11px] font-mono text-on-surface-variant truncate flex-1 ml-1"></span>
+            </div>
+            <div id="browser-list" class="max-h-52 overflow-y-auto"></div>
+            <div class="flex justify-end px-3 py-2 bg-surface border-t border-[rgba(65,71,81,0.15)]">
+              <button type="button" onclick="selectDir()"
+                class="text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded-md
+                       bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors">
+                Select This Directory
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       <div>
         <label class="text-[0.65rem] uppercase tracking-widest text-on-surface-variant block mb-1">Title (optional)</label>
@@ -600,6 +632,9 @@ function initResizeHandle() {
 function openNewChatModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay.style.removeProperty('display');
+  // 마지막 사용한 cwd 복원
+  const lastCwd = localStorage.getItem('lastCwd');
+  if (lastCwd) document.getElementById('modal-cwd').value = lastCwd;
   setTimeout(() => document.getElementById('modal-cwd').focus(), 50);
   document.getElementById('modal-cwd').onkeydown = e => { if (e.key === 'Enter') createChat(); };
   document.getElementById('modal-title').onkeydown = e => { if (e.key === 'Enter') createChat(); };
@@ -609,7 +644,72 @@ function closeNewChatModal() {
   document.getElementById('modal-overlay').style.setProperty('display', 'none', 'important');
   document.getElementById('modal-cwd').value = '';
   document.getElementById('modal-title').value = '';
+  document.getElementById('dir-browser').classList.add('hidden');
 }
+
+// ── Directory Browser (v1에서 포팅) ──────────────────────────────────────
+const browseState = { path: '', entries: [] };
+
+async function fetchDir(path) {
+  const data = await api('GET', `/api/fs?path=${encodeURIComponent(path)}`);
+  browseState.path    = data.path || path;
+  browseState.entries = data.entries || [];
+}
+
+function renderBrowser() {
+  document.getElementById('browser-path').textContent = browseState.path;
+  const list = document.getElementById('browser-list');
+  list.innerHTML = '';
+  if (browseState.entries.length === 0) {
+    list.innerHTML = '<div class="px-4 py-3 text-xs font-mono text-on-surface-variant opacity-40">No subdirectories</div>';
+    return;
+  }
+  browseState.entries.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-surface-high transition-colors text-sm font-mono text-on-surface';
+    div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="#60A5FA" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>${esc(entry.name)}`;
+    div.onclick = async () => {
+      await fetchDir(browseState.path + '/' + entry.name);
+      renderBrowser();
+    };
+    list.appendChild(div);
+  });
+}
+
+async function openBrowser() {
+  const startPath = document.getElementById('modal-cwd').value.trim() || '';
+  await fetchDir(startPath);
+  renderBrowser();
+  document.getElementById('dir-browser').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+async function goUp() {
+  await fetchDir(browseState.path + '/..');
+  renderBrowser();
+}
+
+async function goHome() {
+  await fetchDir('');
+  renderBrowser();
+}
+
+function selectDir() {
+  document.getElementById('modal-cwd').value = browseState.path;
+  document.getElementById('dir-browser').classList.add('hidden');
+}
+
+// 모달 외부 클릭 시 브라우저 닫기
+document.addEventListener('click', (e) => {
+  const browser = document.getElementById('dir-browser');
+  if (!browser || browser.classList.contains('hidden')) return;
+  const isInsideBrowser = browser.contains(e.target);
+  const isInput = e.target.id === 'modal-cwd';
+  const isBrowseBtn = e.target.closest('button[onclick="openBrowser()"]');
+  if (!isInsideBrowser && !isInput && !isBrowseBtn) {
+    browser.classList.add('hidden');
+  }
+});
 
 function closeModal(e) {
   if (e.target === document.getElementById('modal-overlay')) closeNewChatModal();
@@ -619,6 +719,7 @@ async function createChat() {
   const cwd = document.getElementById('modal-cwd').value.trim();
   if (!cwd) { document.getElementById('modal-cwd').focus(); return; }
   const title = document.getElementById('modal-title').value.trim() || cwd;
+  localStorage.setItem('lastCwd', cwd);
   closeNewChatModal();
   const chat = await api('POST', '/api/chats', { cwd, title });
   await loadChats();
