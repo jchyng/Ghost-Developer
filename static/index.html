@@ -1,754 +1,639 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Kinetic AI | Task Runner</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
-    <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "on-error-container": "#ffdad6",
-              "outline-variant": "#414751",
-              "inverse-surface": "#e5e2e1",
-              "surface-container-lowest": "#0e0e0e",
-              "surface-bright": "#3a3939",
-              "on-secondary-fixed-variant": "#005137",
-              "on-primary-fixed": "#001c39",
-              "secondary-container": "#00bd85",
-              "primary-container": "#60a5fa",
-              "on-secondary": "#003825",
-              "on-background": "#e5e2e1",
-              tertiary: "#fabd34",
-              "on-primary": "#00315d",
-              "tertiary-container": "#d19900",
-              "on-primary-fixed-variant": "#004883",
-              "on-error": "#690005",
-              "surface-variant": "#353534",
-              "secondary-fixed-dim": "#45dfa4",
-              surface: "#131313",
-              "inverse-primary": "#0060ac",
-              "on-secondary-container": "#00452e",
-              "on-surface-variant": "#c1c7d3",
-              "on-surface": "#e5e2e1",
-              "surface-container-highest": "#353534",
-              "on-tertiary-fixed": "#261900",
-              background: "#131313",
-              "inverse-on-surface": "#313030",
-              "on-tertiary-container": "#4b3500",
-              "tertiary-fixed-dim": "#fabd34",
-              "primary-fixed": "#d4e3ff",
-              "tertiary-fixed": "#ffdea4",
-              "on-tertiary-fixed-variant": "#5d4200",
-              secondary: "#45dfa4",
-              "surface-container-high": "#2a2a2a",
-              "surface-container": "#201f1f",
-              "surface-container-low": "#1c1b1b",
-              "surface-dim": "#131313",
-              "secondary-fixed": "#68fcbf",
-              outline: "#8b919d",
-              "on-tertiary": "#412d00",
-              "error-container": "#93000a",
-              "primary-fixed-dim": "#a4c9ff",
-              error: "#ffb4ab",
-              primary: "#a4c9ff",
-              "surface-tint": "#a4c9ff",
-              "on-secondary-fixed": "#002114",
-              "on-primary-container": "#003a6b",
-            },
-            fontFamily: {
-              headline: ["Inter"],
-              body: ["Inter"],
-              label: ["Inter"],
-              mono: ["JetBrains Mono"],
-            },
-            borderRadius: {
-              DEFAULT: "0.125rem",
-              lg: "0.25rem",
-              xl: "0.5rem",
-              full: "0.75rem",
-            },
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Company</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: { lowest: '#0E0E0E', DEFAULT: '#131313', low: '#1C1B1B', high: '#2A2A2A', variant: '#353534' },
+            primary: { DEFAULT: '#A4C9FF', container: '#60A5FA' },
+            secondary: { DEFAULT: '#45DFA4', container: '#00BD85' },
+            'on-surface': { DEFAULT: '#E5E2E1', variant: '#C1C7D3' },
+            'outline-variant': '#414751',
           },
-        },
-      };
-    </script>
-    <style>
-      .material-symbols-outlined {
-        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-        vertical-align: middle;
+          fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+        }
       }
-      html, body { height: 100%; overflow: hidden; }
-      body {
-        background-color: #131313;
-        color: #e5e2e1;
-      }
-      .running-glow {
-        box-shadow: 0 0 15px rgba(96, 165, 250, 0.2);
-      }
-      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-      .custom-scrollbar::-webkit-scrollbar-track { background: #0e0e0e; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; }
+    };
+  </script>
+  <style>
+    body { background: #131313; color: #E5E2E1; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #353534; border-radius: 3px; }
+    .xterm-viewport { overflow-y: auto !important; }
+    #term-panel .xterm { height: 100%; }
+    #resize-handle { cursor: ns-resize; }
+    .chat-item.active { background: rgba(28,27,27,0.5); }
+    .chat-item.active .pipe { opacity: 1; }
+    .pipe { opacity: 0; }
+    .msg-user { background: rgba(28,27,27,0.5); border: 1px solid rgba(65,71,81,0.1); border-radius: 0.75rem; }
+    .tab-active { background: #0E0E0E; border-top: 1px solid rgba(65,71,81,0.2); border-left: 1px solid rgba(65,71,81,0.2); border-right: 1px solid rgba(65,71,81,0.2); }
+    .tab-inactive { background: transparent; color: #C1C7D3; }
+  </style>
+</head>
 
-      /* xterm overrides */
-      #terminal-section { flex: 1; min-height: 0; }
-      #terminal { width: 100%; height: 100%; }
-      .xterm { height: 100%; }
-      .xterm-viewport { overflow-y: auto !important; }
-    </style>
-  </head>
-  <body class="font-body selection:bg-primary-container selection:text-on-primary-container">
+<body class="flex h-screen overflow-hidden font-sans select-none">
 
-    <!-- SideNavBar (280px Fixed) -->
-    <aside class="w-[280px] h-screen fixed left-0 top-0 bg-[#0E0E0E] flex flex-col py-8 z-50">
-      <div class="px-6 mb-10">
-        <div class="flex items-center gap-3 mb-8">
-          <div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
-            <span class="material-symbols-outlined text-on-primary" style="font-variation-settings:'FILL' 1;">bolt</span>
-          </div>
-          <div>
-            <h1 class="text-xl font-bold tracking-tighter text-[#E5E2E1]">Kinetic AI</h1>
-            <p class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant opacity-50">v2.0.4-stable</p>
-          </div>
-        </div>
-        <button
-          class="w-full bg-primary hover:bg-primary-container text-on-primary font-bold py-2.5 px-4 rounded-md flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
-          onclick="toggleModal(true)"
-        >
-          <span class="material-symbols-outlined text-[20px]">add</span>
-          <span class="text-sm font-Inter tracking-tighter">+ Add Task</span>
-        </button>
-      </div>
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+<aside id="sidebar" class="flex flex-col w-[280px] bg-surface-lowest flex-shrink-0">
 
-      <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1">
-        <!-- Shell Sessions section -->
-        <div class="px-4 py-2 mb-1 flex items-center justify-between">
-          <span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant opacity-60">Shells</span>
-          <button
-            onclick="addShell()"
-            class="text-on-surface-variant hover:text-secondary transition-colors"
-            title="New Shell"
-          >
-            <span class="material-symbols-outlined text-[16px]">add</span>
-          </button>
-        </div>
+  <!-- Logo -->
+  <div class="px-4 py-4 flex items-center gap-2">
+    <i data-lucide="sparkles" class="w-5 h-5 text-secondary flex-shrink-0"></i>
+    <span class="font-semibold text-base tracking-tight">AI Company</span>
+  </div>
 
-        <!-- Dynamic Shell Tabs -->
-        <div id="shell-tabs-dynamic"></div>
+  <!-- New Chat -->
+  <div class="px-3 pb-3">
+    <button onclick="openNewChatModal()"
+      class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium
+             border border-[rgba(65,71,81,0.2)] hover:bg-surface-high transition-colors">
+      <i data-lucide="plus" class="w-4 h-4"></i> New Chat
+    </button>
+  </div>
 
-        <!-- Task Queue section -->
-        <div class="px-4 pt-4 pb-2 mb-1">
-          <span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant opacity-60">Task Queue</span>
-        </div>
+  <!-- Chat List -->
+  <div class="flex-1 overflow-y-auto py-2">
+    <div class="px-4 mb-2 text-[0.65rem] uppercase tracking-widest text-on-surface-variant font-semibold">
+      Recent Chats
+    </div>
+    <nav id="chat-list" class="flex flex-col gap-0.5"></nav>
+  </div>
 
-        <!-- Dynamic Task List -->
-        <div id="task-list-dynamic"></div>
-      </nav>
+  <!-- Footer Nav -->
+  <div class="p-3 flex flex-col gap-0.5 border-t border-[rgba(65,71,81,0.1)]">
+    <button class="flex items-center gap-3 px-4 py-2 rounded text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30 transition-colors">
+      <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+    </button>
+    <button class="flex items-center gap-3 px-4 py-2 rounded text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-low/30 transition-colors">
+      <i data-lucide="settings" class="w-4 h-4"></i> Settings
+    </button>
+  </div>
+</aside>
 
-      <!-- Bottom Nav Links -->
-      <div class="px-2 mt-auto pt-8 border-t border-outline-variant/10">
-        <div class="pl-4 py-2 opacity-60 hover:opacity-100 hover:bg-[#2A2A2A] rounded-lg transition-all cursor-pointer flex items-center gap-3">
-          <span class="material-symbols-outlined text-sm">dashboard</span>
-          <span class="text-sm font-Inter tracking-tighter">Dashboard</span>
-        </div>
-        <div class="pl-4 py-2 opacity-60 hover:opacity-100 hover:bg-[#2A2A2A] rounded-lg transition-all cursor-pointer flex items-center gap-3">
-          <span class="material-symbols-outlined text-sm">model_training</span>
-          <span class="text-sm font-Inter tracking-tighter">Model Library</span>
-        </div>
-        <div class="pl-4 py-2 opacity-60 hover:opacity-100 hover:bg-[#2A2A2A] rounded-lg transition-all cursor-pointer flex items-center gap-3">
-          <span class="material-symbols-outlined text-sm">settings</span>
-          <span class="text-sm font-Inter tracking-tighter">Settings</span>
-        </div>
-      </div>
-    </aside>
+<!-- ═══ MAIN ═══════════════════════════════════════════════════════════════ -->
+<main class="flex-1 flex flex-col min-w-0">
 
-    <!-- Main Content Area -->
-    <main class="ml-[280px] h-screen flex flex-col relative bg-surface">
+  <!-- Top Bar -->
+  <header class="h-14 flex items-center justify-between px-6 flex-shrink-0">
+    <div class="flex items-center gap-2 text-sm text-on-surface-variant">
+      <i data-lucide="home" class="w-4 h-4"></i>
+      <i data-lucide="chevron-right" class="w-3 h-3"></i>
+      <span>Context</span>
+      <i data-lucide="chevron-right" class="w-3 h-3"></i>
+      <span id="header-cwd" class="font-mono text-xs text-on-surface bg-surface-low px-2 py-1 rounded-md">—</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleTerminal()"
+        class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-low rounded-md transition-colors" title="터미널 토글">
+        <i data-lucide="terminal" class="w-4 h-4"></i>
+      </button>
+      <button id="interrupt-btn" onclick="cancelChat()" style="display:none"
+        class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-red-900/30 text-red-400 text-xs font-mono hover:bg-red-900/10 transition-colors">
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        INTERRUPT (CTRL+C)
+      </button>
+    </div>
+  </header>
 
-      <!-- TopNavBar -->
-      <header class="h-16 flex-shrink-0 bg-[#131313]/80 backdrop-blur-xl flex justify-between items-center px-12 z-40 border-b border-white/5">
-        <div class="flex items-center gap-8">
-          <div class="flex flex-col">
-            <span class="text-[9px] font-mono uppercase tracking-widest text-on-surface-variant opacity-50">Session</span>
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[14px] text-primary">folder_open</span>
-              <span id="header-cwd" class="text-xs font-mono text-primary-fixed">~</span>
-            </div>
-          </div>
-          <div class="h-8 w-[1px] bg-outline-variant/20"></div>
-          <div class="flex flex-col">
-            <span class="text-[9px] font-mono uppercase tracking-widest text-on-surface-variant opacity-50">Active Prompt</span>
-            <span id="header-prompt" class="text-xs font-Inter text-on-surface truncate max-w-[300px]">Interactive Shell</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-4">
-          <div class="flex gap-4 mr-6">
-            <span class="text-[10px] font-mono uppercase tracking-widest text-[#60A5FA] font-bold border-b border-[#60A5FA] cursor-pointer">Logs</span>
-            <span class="text-[10px] font-mono uppercase tracking-widest text-[#C1C7D3] hover:text-[#E5E2E1] cursor-pointer transition-colors">Artifacts</span>
-            <span class="text-[10px] font-mono uppercase tracking-widest text-[#C1C7D3] hover:text-[#E5E2E1] cursor-pointer transition-colors">Output</span>
-          </div>
-          <button
-            id="stop-btn"
-            class="bg-error-container hover:bg-error text-on-error-container font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-error/20 transition-all duration-200 flex items-center gap-2 active:scale-95"
-            onclick="stopCurrent()"
-          >
-            <span class="material-symbols-outlined text-sm">stop_circle</span>
-            Interrupt (Ctrl+C)
-          </button>
-        </div>
-      </header>
+  <!-- Chat + Terminal (flex-1, scroll inside) -->
+  <div class="flex-1 flex flex-col min-h-0">
 
-      <!-- Terminal Workspace -->
-      <section id="terminal-section" class="bg-black p-4 overflow-hidden flex flex-col">
-        <div id="terminal" class="w-full h-full"></div>
-      </section>
-    </main>
-
-    <!-- Task Entry Modal -->
-    <div class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" id="taskModal">
-      <div class="w-full max-w-2xl bg-surface border border-outline-variant/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-secondary">terminal</span>
-              <h2 class="text-lg font-bold tracking-tight text-on-surface">Create New Task</h2>
-            </div>
-            <button class="text-on-surface-variant hover:text-on-surface transition-colors" onclick="toggleModal(false)">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <form id="taskForm" class="space-y-6">
-            <div class="space-y-2">
-              <label class="block text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Working Directory (cwd)</label>
-              <div class="relative">
-                <div class="flex gap-2">
-                  <input
-                    id="cwdInput"
-                    name="cwd"
-                    class="flex-1 bg-surface-container-high border-none rounded-md focus:ring-1 focus:ring-secondary text-on-surface font-mono text-sm py-3 px-4 placeholder:opacity-30"
-                    placeholder="/workspaces/..."
-                    type="text"
-                    required
-                    autocomplete="off"
-                  />
-                  <button
-                    type="button"
-                    onclick="openBrowser()"
-                    class="bg-surface-container-high hover:bg-surface-container px-3 rounded-md text-on-surface-variant hover:text-on-surface transition-colors flex-shrink-0 flex items-center"
-                    title="Browse directories"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">folder_open</span>
-                  </button>
-                </div>
-                <!-- Directory browser popover -->
-                <div id="dir-browser" class="hidden absolute top-full left-0 right-0 mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-20 overflow-hidden">
-                  <div class="flex items-center gap-1 px-2 py-2 bg-surface-container-low border-b border-outline-variant/20">
-                    <button
-                      type="button"
-                      onclick="goHome()"
-                      title="Home"
-                      class="text-on-surface-variant hover:text-secondary transition-colors p-1 rounded"
-                    >
-                      <span class="material-symbols-outlined text-[14px]">home</span>
-                    </button>
-                    <button
-                      type="button"
-                      onclick="goUp()"
-                      title="Up"
-                      class="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded"
-                    >
-                      <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
-                    </button>
-                    <span id="browser-path" class="text-xs font-mono text-on-surface-variant truncate flex-1 ml-1"></span>
-                  </div>
-                  <div id="browser-list" class="max-h-52 overflow-y-auto custom-scrollbar"></div>
-                  <div class="flex justify-end px-4 py-2 bg-surface-container-low border-t border-outline-variant/20">
-                    <button
-                      type="button"
-                      onclick="selectDir()"
-                      class="bg-secondary text-on-secondary text-[10px] font-mono uppercase tracking-widest px-4 py-1.5 rounded transition-all hover:bg-secondary-container hover:text-on-secondary-container active:scale-95"
-                    >
-                      Select This Directory
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <label class="block text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Prompt (Task)</label>
-              <textarea
-                id="promptInput"
-                name="prompt"
-                class="w-full bg-surface-container-high border-none rounded-md focus:ring-1 focus:ring-secondary text-on-surface font-Inter text-sm py-3 px-4 placeholder:opacity-30 resize-none"
-                placeholder="Describe the task you want the agent to perform..."
-                rows="4"
-                required
-              ></textarea>
-            </div>
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/10">
-              <button class="px-6 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors" onclick="toggleModal(false)" type="button">Cancel</button>
-              <button class="bg-primary text-on-primary font-bold py-2 px-8 rounded-md transition-all active:scale-95 shadow-lg shadow-primary/10" type="submit">Execute Task</button>
-            </div>
-          </form>
-        </div>
-        <div class="bg-surface-container-low px-6 py-3 flex items-center justify-between">
-          <span class="text-[10px] font-mono text-on-surface-variant opacity-40">
-            Press <kbd class="bg-surface-container-high px-1 rounded">ESC</kbd> to close
-          </span>
-          <div class="flex gap-4">
-            <span class="text-[10px] font-mono text-secondary opacity-60">Mode: Autonomous</span>
-            <span class="text-[10px] font-mono text-primary opacity-60">Engine: claude-sonnet-4-6</span>
-          </div>
-        </div>
+    <!-- Chat Messages -->
+    <div id="chat-area" class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+      <!-- Empty state -->
+      <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-3 h-full">
+        <i data-lucide="sparkles" class="w-10 h-10 opacity-30"></i>
+        <p class="text-sm opacity-50">채팅을 선택하거나 새 채팅을 시작하세요.</p>
       </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
-    <script>
-      // ── State ────────────────────────────────────────────────────────────
-      let ws = null;
-      let currentSession = null;
-      let tasksList = [];
+    <!-- Terminal Panel (docked, resizable) -->
+    <div id="term-panel" class="flex flex-col flex-shrink-0 bg-[#0A0A0A]" style="height:220px; display:none">
+      <!-- Resize Handle -->
+      <div id="resize-handle" class="flex items-center justify-center h-3 flex-shrink-0 hover:bg-surface-low/30">
+        <div class="w-8 h-[3px] rounded-full bg-[rgba(65,71,81,0.4)]"></div>
+      </div>
+      <!-- Tabs -->
+      <div id="term-tabs" class="flex items-center px-2 gap-1 bg-surface-lowest flex-shrink-0">
+        <!-- tabs rendered dynamically -->
+      </div>
+      <!-- Term Container -->
+      <div id="term-container" class="flex-1 overflow-hidden px-2 pb-2"></div>
+    </div>
 
-      // ── Per-session terminal registry ─────────────────────────────────────
-      const terminals = {};
+  </div><!-- /chat+terminal -->
 
-      function getOrCreateTerminal(sessionId) {
-        if (terminals[sessionId]) return terminals[sessionId];
+  <!-- Input Bar -->
+  <div class="px-6 py-3 bg-surface-lowest border-t border-[rgba(65,71,81,0.12)] flex-shrink-0">
+    <div id="input-wrap"
+      class="flex items-end gap-2 bg-surface-low rounded-xl border border-[rgba(65,71,81,0.2)] px-3 py-2
+             focus-within:border-secondary/40 focus-within:shadow-[0_0_12px_rgba(69,223,164,0.08)] transition-all">
+      <textarea id="msg-input" rows="1" placeholder="Ask the AI agent to do something..."
+        class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/40
+               resize-none outline-none min-h-[36px] max-h-[160px] py-1 self-center"
+        onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
+      <button onclick="sendMessage()"
+        class="p-2 rounded-lg bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E]
+               hover:opacity-90 transition-opacity flex-shrink-0">
+        <i data-lucide="send" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
 
-        const el = document.createElement('div');
-        el.style.cssText = 'width:100%;height:100%;display:none;';
-        document.getElementById('terminal').appendChild(el);
+</main>
 
-        const t = new Terminal({
-          cursorBlink: true,
-          fontSize: 14,
-          fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", monospace',
-          copyOnSelect: true,
-          theme: {
-            background: '#000000',
-            foreground: '#e5e2e1',
-            cursor: '#45dfa4',
-            cursorAccent: '#000000',
-            selectionBackground: 'rgba(96, 165, 250, 0.3)',
-          },
-        });
-        const fa = new FitAddon.FitAddon();
-        t.loadAddon(fa);
-        t.open(el);
-        fa.fit();
+<!-- ═══ NEW CHAT MODAL ════════════════════════════════════════════════════ -->
+<div id="modal-overlay" onclick="closeModal(event)"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style="display:none!important">
+  <div class="bg-surface-low rounded-xl border border-[rgba(65,71,81,0.2)] p-6 w-full max-w-md mx-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+    onclick="event.stopPropagation()">
+    <h2 class="text-base font-semibold mb-4">New Chat</h2>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-[0.65rem] uppercase tracking-widest text-on-surface-variant block mb-1">Working Directory</label>
+        <input id="modal-cwd" type="text" placeholder="C:\dev\my-project"
+          class="w-full bg-surface rounded-md border border-[rgba(65,71,81,0.2)] px-3 py-2 text-sm font-mono outline-none
+                 focus:border-secondary/50 transition-colors" />
+      </div>
+      <div>
+        <label class="text-[0.65rem] uppercase tracking-widest text-on-surface-variant block mb-1">Title (optional)</label>
+        <input id="modal-title" type="text" placeholder="자동으로 cwd 사용"
+          class="w-full bg-surface rounded-md border border-[rgba(65,71,81,0.2)] px-3 py-2 text-sm outline-none
+                 focus:border-secondary/50 transition-colors" />
+      </div>
+    </div>
+    <div class="flex gap-2 mt-5 justify-end">
+      <button onclick="closeNewChatModal()"
+        class="px-4 py-2 text-sm text-on-surface-variant hover:text-on-surface transition-colors">Cancel</button>
+      <button onclick="createChat()"
+        class="px-4 py-2 text-sm rounded-md bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E] font-medium hover:opacity-90 transition-opacity">
+        Create
+      </button>
+    </div>
+  </div>
+</div>
 
-        // 셸 전용: 키 입력을 이 인스턴스에 바인딩
-        t.onData(data => {
-          if (ws?.readyState === WebSocket.OPEN && currentSession === sessionId && sessionId.startsWith('shell')) {
-            ws.send(new TextEncoder().encode(data));
-          }
-        });
-        t.onResize(({ cols, rows }) => {
-          if (ws?.readyState === WebSocket.OPEN && currentSession === sessionId && sessionId.startsWith('shell')) {
-            ws.send(JSON.stringify({ type: 'resize', cols, rows }));
-          }
-        });
+<!-- ═══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let activeChatId = null;
+let chatWs = null;
+let isRunning = false;
+let termVisible = false;
 
-        terminals[sessionId] = { term: t, fitAddon: fa, el };
-        return terminals[sessionId];
-      }
+// Terminal tabs: [{id, label, kind('log'|'pty'), term, fitAddon, ws}]
+let tabs = [];
+let activeTabId = null;
 
-      window.addEventListener('resize', () => {
-        Object.values(terminals).forEach(({ fitAddon, el }) => {
-          if (el.style.display !== 'none') fitAddon.fit();
-        });
-      });
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  lucide.createIcons();
+  initResizeHandle();
+  await loadChats();
+  // keyboard shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && isRunning) {
+      e.preventDefault();
+      cancelChat();
+    }
+  });
+});
 
-      // ── WebSocket connect ─────────────────────────────────────────────────
-      function connectTo(sessionId) {
-        if (ws) { ws.close(); ws = null; }
-        currentSession = sessionId;
+// ── Chat List ─────────────────────────────────────────────────────────────
+async function loadChats() {
+  const chats = await api('GET', '/api/chats');
+  renderChatList(chats);
+  if (chats.length > 0 && !activeChatId) {
+    selectChat(chats[0].id, chats[0]);
+  }
+}
 
-        // 모든 터미널 숨기기, 현재 세션 터미널 표시
-        Object.values(terminals).forEach(({ el }) => { el.style.display = 'none'; });
-        const { term, fitAddon } = getOrCreateTerminal(sessionId);
-        terminals[sessionId].el.style.display = 'block';
-        fitAddon.fit();
+function renderChatList(chats) {
+  const nav = document.getElementById('chat-list');
+  nav.innerHTML = '';
+  if (chats.length === 0) {
+    nav.innerHTML = '<div class="px-4 py-2 text-xs text-on-surface-variant/50">채팅 없음</div>';
+    return;
+  }
+  chats.forEach(chat => {
+    const btn = document.createElement('button');
+    btn.className = 'chat-item w-full flex items-center gap-3 px-4 py-2 text-sm relative group hover:bg-surface-low/30 transition-colors';
+    btn.dataset.id = chat.id;
+    btn.innerHTML = `
+      <div class="pipe absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-secondary rounded-r-full shadow-[0_0_8px_rgba(69,223,164,0.4)]"></div>
+      <i data-lucide="message-square" class="w-4 h-4 flex-shrink-0 text-on-surface-variant"></i>
+      <span class="truncate text-on-surface-variant group-hover:text-on-surface">${esc(chat.title || chat.cwd)}</span>`;
+    btn.onclick = () => selectChat(chat.id, chat);
+    nav.appendChild(btn);
+  });
+  lucide.createIcons();
+  // re-apply active state
+  if (activeChatId) highlightChat(activeChatId);
+}
 
-        updateHeader(sessionId);
-        updateActiveTab(sessionId);
-        updateStopBtn(sessionId);
+function highlightChat(chatId) {
+  document.querySelectorAll('.chat-item').forEach(el => {
+    const active = el.dataset.id === chatId;
+    el.classList.toggle('active', active);
+    el.querySelector('.pipe')?.classList.toggle('opacity-100', active);
+    el.querySelector('span')?.classList.toggle('text-on-surface', active);
+  });
+}
 
-        ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
-        ws.binaryType = 'arraybuffer';
-        ws.onopen = () => {
-          if (sessionId.startsWith('shell')) {
-            ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
-          }
-        };
-        ws.onmessage = (e) => terminals[sessionId].term.write(new Uint8Array(e.data));
-        // 세션 ID를 클로저에 캡처해 전환 후 발생하는 이전 세션의 onclose가
-        // 새 세션 터미널을 오염시키지 않도록 한다 (race condition 방지)
-        const ownSession = sessionId;
-        ws.onclose = () => { if (currentSession === ownSession) terminals[ownSession]?.term.write('\r\n\x1b[90m[disconnected]\x1b[0m\r\n'); };
-        ws.onerror = () => { if (currentSession === ownSession) terminals[ownSession]?.term.write('\r\n\x1b[31m[connection error]\x1b[0m\r\n'); };
-      }
+// ── Select Chat ───────────────────────────────────────────────────────────
+function selectChat(chatId, chat) {
+  activeChatId = chatId;
+  highlightChat(chatId);
 
-      // ── Header update ────────────────────────────────────────────────────
-      function updateHeader(sessionId) {
-        const cwdEl    = document.getElementById('header-cwd');
-        const promptEl = document.getElementById('header-prompt');
-        if (sessionId?.startsWith('shell')) {
-          const shell = shellSessions.find(s => s.id === sessionId);
-          cwdEl.textContent    = shell ? shell.label : 'Shell';
-          promptEl.textContent = 'Interactive Shell';
-          return;
-        }
-        const task = tasksList.find(t => t.session_id === sessionId);
-        if (task) {
-          cwdEl.textContent    = task.cwd;
-          promptEl.textContent = task.prompt;
-        }
-      }
+  // Update header cwd
+  document.getElementById('header-cwd').textContent = chat?.cwd || chatId;
 
-      // ── Sidebar active state ──────────────────────────────────────────────
-      function updateActiveTab(sessionId) {
-        renderShellTabs();
-        renderTaskList();
-      }
+  // Reconnect WebSocket
+  if (chatWs) { chatWs.close(); chatWs = null; }
+  connectChatWs(chatId);
 
-      // ── Render task list ──────────────────────────────────────────────────
-      function esc(s) {
-        return String(s)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-      }
+  // Clear chat area (keep empty state hidden)
+  clearMessages();
 
-      function renderTaskList() {
-        const container = document.getElementById('task-list-dynamic');
-        container.innerHTML = '';
+  // Ensure log tab exists
+  ensureLogTab();
+}
 
-        if (tasksList.length === 0) {
-          container.innerHTML = `
-            <div class="px-4 py-3 text-center">
-              <p class="text-[10px] font-mono text-on-surface-variant opacity-40 leading-relaxed">
-                No tasks yet.<br>Press <span class="text-secondary opacity-70">+ Add Task</span> to start.
-              </p>
-            </div>`;
-          return;
-        }
+function connectChatWs(chatId) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  chatWs = new WebSocket(`${proto}://${location.host}/ws/chats/${chatId}`);
+  chatWs.onmessage = e => handleChatEvent(JSON.parse(e.data));
+  chatWs.onclose = () => {
+    // retry after 2s if same chat still active
+    setTimeout(() => { if (activeChatId === chatId) connectChatWs(chatId); }, 2000);
+  };
+}
 
-        tasksList.forEach(task => {
-          const isSelected = currentSession === task.session_id;
-          const isRunning  = task.status === 'running';
-          const isError    = task.status === 'error' || task.status === 'cancelled';
+// ── Chat Event Handler ────────────────────────────────────────────────────
+function handleChatEvent(e) {
+  switch (e.type) {
+    case 'history':
+      renderMessages(e.messages);
+      break;
+    case 'system':
+      writeLog(`\x1b[90m${e.text}\x1b[0m\r\n`);
+      break;
+    case 'claude_text':
+      writeLog(e.text.replace(/\n/g, '\r\n'));
+      break;
+    case 'tool_use':
+      writeLog(`\x1b[33m[TOOL] ${e.name}\x1b[0m\r\n`);
+      break;
+    case 'done':
+      addMessage('assistant', e.result);
+      setRunning(false);
+      break;
+    case 'clarify':
+      addMessage('assistant', e.message);
+      setRunning(false);
+      break;
+    case 'error':
+      writeLog(`\x1b[31m[ERROR] ${e.message}\x1b[0m\r\n`);
+      addStatusMessage(`오류: ${e.message}`, 'error');
+      setRunning(false);
+      break;
+    case 'cancelled':
+      writeLog(`\x1b[90m[CANCELLED]\x1b[0m\r\n`);
+      setRunning(false);
+      break;
+    case 'rate_limit': {
+      const t = new Date(e.resets_at * 1000).toLocaleTimeString();
+      writeLog(`\x1b[31m[RATE LIMIT] Resumes at ${t}\x1b[0m\r\n`);
+      addStatusMessage(`Rate limit — ${t} 이후 재개`, 'warn');
+      setRunning(false);
+      break;
+    }
+  }
+}
 
-          let borderCls  = 'pl-4';
-          let opacityCls = isSelected ? '' : 'opacity-60 hover:opacity-100';
-          let glowCls    = '';
-          let statusColor, statusText, dotHtml = '';
+// ── Messages ──────────────────────────────────────────────────────────────
+function clearMessages() {
+  const area = document.getElementById('chat-area');
+  area.innerHTML = '<div id="empty-state" style="display:none"></div>';
+}
 
-          if (isRunning) {
-            borderCls  = 'pl-4 border-l-2 border-[#45DFA4]';
-            glowCls    = 'running-glow';
-            statusColor = 'text-secondary';
-            statusText  = 'RUNNING';
-            dotHtml = `<span class="material-symbols-outlined text-[14px] text-secondary animate-pulse" style="font-variation-settings:'FILL' 1;">circle</span>`;
-          } else if (task.status === 'done') {
-            if (isSelected) borderCls = 'pl-4 border-l-2 border-[#A4C9FF]';
-            statusColor = 'text-secondary';
-            statusText  = 'DONE';
-          } else if (isError) {
-            if (isSelected) borderCls = 'pl-4 border-l-2 border-[#FFAB91]';
-            statusColor = 'text-error';
-            statusText  = task.status.toUpperCase();
-          } else {
-            // pending
-            if (isSelected) borderCls = 'pl-4 border-l-2 border-[#A4C9FF]';
-            statusColor = 'text-on-surface-variant';
-            statusText  = 'PENDING';
-          }
+function renderMessages(messages) {
+  clearMessages();
+  messages.forEach(m => addMessage(m.role, m.content, false));
+  scrollChat();
+}
 
-          const div = document.createElement('div');
-          div.dataset.session = task.session_id;
-          div.dataset.taskId  = task.id;
-          div.className = [
-            borderCls, opacityCls, glowCls,
-            'transition-all duration-200 py-3 cursor-pointer hover:bg-[#2A2A2A] rounded-r-lg mb-1'
-          ].filter(Boolean).join(' ');
-          div.onclick = () => connectTo(task.session_id);
+function addMessage(role, content, scroll = true) {
+  const area = document.getElementById('chat-area');
+  // remove empty state
+  document.getElementById('empty-state')?.remove();
 
-          div.innerHTML = `
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center justify-between pr-4">
-                <span class="text-xs font-mono ${statusColor}">${statusText}</span>
-                ${dotHtml}
-              </div>
-              <span class="text-sm font-medium text-[#E5E2E1] truncate">${esc(task.prompt)}</span>
-              <span class="text-[11px] font-mono text-on-surface-variant opacity-60 truncate">${esc(task.cwd)}</span>
-            </div>
-          `;
-          container.appendChild(div);
-        });
-      }
+  const wrap = document.createElement('div');
+  if (role === 'user') {
+    wrap.className = 'flex gap-4 msg-user p-4';
+    wrap.innerHTML = `
+      <div class="w-8 h-8 rounded-full bg-surface-high flex items-center justify-center flex-shrink-0 text-xs font-semibold text-on-surface-variant">Y</div>
+      <div class="flex flex-col min-w-0">
+        <span class="text-[0.65rem] uppercase tracking-widest text-on-surface-variant mb-1">You</span>
+        <p class="text-sm leading-relaxed whitespace-pre-wrap break-words">${esc(content)}</p>
+      </div>`;
+  } else {
+    wrap.className = 'flex gap-4 p-2';
+    wrap.innerHTML = `
+      <div class="w-8 h-8 rounded-full bg-surface-high flex items-center justify-center flex-shrink-0 border border-[rgba(65,71,81,0.2)]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+      </div>
+      <div class="flex flex-col min-w-0 flex-1">
+        <span class="text-[0.65rem] uppercase tracking-widest text-on-surface-variant mb-1">AI Agent</span>
+        <div class="text-sm leading-relaxed text-on-surface/90 whitespace-pre-wrap break-words">${renderMarkdownLite(content)}</div>
+      </div>`;
+  }
+  area.appendChild(wrap);
+  if (scroll) scrollChat();
+}
 
-      // ── Multi-shell management ────────────────────────────────────────────
-      let shellSessions = [];
-      let shellCounter  = 0;
+function addStatusMessage(text, level = 'info') {
+  const area = document.getElementById('chat-area');
+  const colors = { info: '#C1C7D3', warn: '#F59E0B', error: '#F87171' };
+  const div = document.createElement('div');
+  div.className = 'flex justify-center';
+  div.innerHTML = `<span class="text-[0.65rem] font-mono px-3 py-1 rounded-full bg-surface-high" style="color:${colors[level]}">${esc(text)}</span>`;
+  area.appendChild(div);
+  scrollChat();
+}
 
-      function addShell() {
-        shellCounter++;
-        const id    = `shell-${shellCounter}`;
-        const label = `Shell ${shellCounter}`;
-        shellSessions.push({ id, label });
-        renderShellTabs();
-        connectTo(id);
-      }
+function scrollChat() {
+  const area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+}
 
-      async function removeShell(id, e) {
-        e.stopPropagation();
-        await fetch(`/api/shells/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        // 터미널 인스턴스 정리
-        if (terminals[id]) {
-          terminals[id].term.dispose();
-          terminals[id].el.remove();
-          delete terminals[id];
-        }
-        shellSessions = shellSessions.filter(s => s.id !== id);
-        if (currentSession === id) {
-          const fallback = shellSessions[shellSessions.length - 1];
-          if (fallback) {
-            connectTo(fallback.id);
-          } else {
-            addShell();  // 마지막 탭 닫으면 새 탭 자동 생성
-            return;
-          }
-        }
-        renderShellTabs();
-      }
+// ── Send Message ──────────────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const content = input.value.trim();
+  if (!content || !activeChatId || isRunning) return;
 
-      function renderShellTabs() {
-        const container = document.getElementById('shell-tabs-dynamic');
-        container.innerHTML = '';
-        shellSessions.forEach(shell => {
-          const isSelected = currentSession === shell.id;
-          const div = document.createElement('div');
-          div.dataset.session = shell.id;
-          div.className = [
-            isSelected
-              ? 'pl-4 border-l-2 border-[#45DFA4]'
-              : 'pl-4 opacity-60 hover:opacity-100',
-            'group transition-all duration-200 py-2.5 cursor-pointer hover:bg-[#2A2A2A] rounded-r-lg mb-1 flex items-center justify-between pr-3'
-          ].join(' ');
-          div.onclick = () => connectTo(shell.id);
-          const xBtnCls = isSelected
-            ? 'opacity-40 group-hover:opacity-100'
-            : 'opacity-0 group-hover:opacity-60';
-          div.innerHTML = `
-            <span class="text-sm font-medium text-[#E5E2E1] flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[14px] ${isSelected ? 'text-secondary' : 'text-on-surface-variant'}">terminal</span>
-              ${esc(shell.label)}
-            </span>
-            <button
-              class="text-on-surface-variant hover:text-error transition-all ${xBtnCls}"
-              onclick="removeShell('${shell.id}', event)"
-              title="Close shell"
-            >
-              <span class="material-symbols-outlined text-[14px]">close</span>
-            </button>
-          `;
-          container.appendChild(div);
-        });
-      }
+  input.value = '';
+  autoResize(input);
 
-      // ── Interrupt button state ────────────────────────────────────────────
-      function updateStopBtn(sessionId) {
-        const btn = document.getElementById('stop-btn');
-        let cls, label;
-        if (!sessionId || sessionId.startsWith('shell')) {
-          cls   = 'bg-surface-container-high hover:bg-surface-container text-on-surface-variant font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-outline-variant/20 transition-all duration-200 flex items-center gap-2 active:scale-95';
-          label = 'Send Ctrl+C';
-        } else {
-          const task = tasksList.find(t => t.session_id === sessionId);
-          if (task && (task.status === 'running' || task.status === 'pending')) {
-            cls   = 'bg-error-container hover:bg-error text-on-error-container font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-error/20 transition-all duration-200 flex items-center gap-2 active:scale-95';
-            label = 'Interrupt (Ctrl+C)';
-          } else {
-            cls   = 'bg-error-container/30 text-on-error-container/40 font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-error/10 transition-all duration-200 flex items-center gap-2 opacity-40 cursor-not-allowed';
-            label = 'Interrupt (Ctrl+C)';
-          }
-        }
-        btn.className = cls;
-        btn.innerHTML = `<span class="material-symbols-outlined text-sm">stop_circle</span>${label}`;
-      }
+  addMessage('user', content);
+  setRunning(true);
 
-      // ── Stop current task / send Ctrl+C ──────────────────────────────────
-      async function stopCurrent() {
-        if (!currentSession) return;
-        if (currentSession.startsWith('shell')) {
-          // Send Ctrl+C to shell
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(new TextEncoder().encode('\x03'));
-          }
-          return;
-        }
-        const task = tasksList.find(t => t.session_id === currentSession);
-        if (task && (task.status === 'running' || task.status === 'pending')) {
-          await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
-        }
-      }
+  // Show terminal panel automatically
+  if (!termVisible) showTerminal();
+  writeLog(`\x1b[90m━━━ ${new Date().toLocaleTimeString()} ━━━\x1b[0m\r\n`);
 
-      // ── Modal ─────────────────────────────────────────────────────────────
-      const modal = document.getElementById('taskModal');
+  const res = await api('POST', `/api/chats/${activeChatId}/send`, { content });
+  if (res.error) {
+    addStatusMessage(res.error, 'error');
+    setRunning(false);
+  }
+}
 
-      function toggleModal(show) {
-        if (show) {
-          modal.classList.remove('hidden');
-          modal.classList.add('flex');
-          document.getElementById('cwdInput').focus();
-        } else {
-          modal.classList.add('hidden');
-          modal.classList.remove('flex');
-        }
-      }
+function handleInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
 
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          // 디렉터리 브라우저가 열려 있으면 브라우저만 닫고 모달은 유지
-          const browser = document.getElementById('dir-browser');
-          if (!browser.classList.contains('hidden')) {
-            browser.classList.add('hidden');
-            return;
-          }
-          toggleModal(false);
-        }
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-          e.preventDefault();
-          toggleModal(true);
-        }
-      });
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
 
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) toggleModal(false);
-      });
+// ── Running State ─────────────────────────────────────────────────────────
+function setRunning(val) {
+  isRunning = val;
+  document.getElementById('interrupt-btn').style.display = val ? 'flex' : 'none';
+  document.getElementById('msg-input').disabled = val;
+}
 
-      // ── Form submit ───────────────────────────────────────────────────────
-      document.getElementById('taskForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const cwd    = document.getElementById('cwdInput').value.trim();
-        const prompt = document.getElementById('promptInput').value.trim();
-        if (!cwd || !prompt) return;
+async function cancelChat() {
+  if (!activeChatId) return;
+  await api('DELETE', `/api/chats/${activeChatId}/cancel`);
+}
 
-        localStorage.setItem('lastCwd', cwd);
+// ── Terminal Panel ────────────────────────────────────────────────────────
+function ensureLogTab() {
+  if (tabs.find(t => t.kind === 'log')) return;
+  const tab = { id: 'log', label: '[Claude Code]', kind: 'log', term: null, fitAddon: null, ws: null };
+  tabs.push(tab);
+  renderTabs();
+  if (!activeTabId) activateTab('log');
+}
 
-        const res  = await fetch('/api/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cwd, prompt }),
-        });
-        const task = await res.json();
+function renderTabs() {
+  const bar = document.getElementById('term-tabs');
+  bar.innerHTML = '';
+  tabs.forEach(tab => {
+    const btn = document.createElement('button');
+    btn.className = `px-4 py-1.5 text-xs font-mono rounded-t-md transition-colors ${tab.id === activeTabId ? 'tab-active text-on-surface' : 'tab-inactive hover:text-on-surface'}`;
+    btn.textContent = tab.label;
+    btn.onclick = () => activateTab(tab.id);
+    bar.appendChild(btn);
+  });
+  // [+] button
+  const plus = document.createElement('button');
+  plus.className = 'p-1.5 text-on-surface-variant hover:text-on-surface transition-colors ml-1';
+  plus.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+  plus.onclick = addPtyTab;
+  bar.appendChild(plus);
+}
 
-        document.getElementById('promptInput').value = '';
-        toggleModal(false);
+function activateTab(tabId) {
+  activeTabId = tabId;
+  renderTabs();
 
-        tasksList.push(task);
-        renderTaskList();
-        connectTo(task.session_id);
-      });
+  const container = document.getElementById('term-container');
+  // Hide all xterm divs
+  container.querySelectorAll('.xterm-wrap').forEach(el => el.style.display = 'none');
 
-      // Restore last cwd
-      const lastCwd = localStorage.getItem('lastCwd');
-      if (lastCwd) document.getElementById('cwdInput').value = lastCwd;
+  const tab = tabs.find(t => t.id === tabId);
+  if (!tab) return;
 
-      // ── Status polling ────────────────────────────────────────────────────
-      setInterval(async () => {
-        try {
-          const list = await fetch('/api/tasks').then(r => r.json());
-          tasksList = list;
-          renderTaskList();
-          if (currentSession && !currentSession.startsWith('shell')) {
-            updateHeader(currentSession);
-            updateStopBtn(currentSession);
-          }
-        } catch (_) {}
-      }, 2000);
+  let wrap = container.querySelector(`[data-tab="${tabId}"]`);
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'xterm-wrap';
+    wrap.dataset.tab = tabId;
+    wrap.style.height = '100%';
+    container.appendChild(wrap);
+  }
+  wrap.style.display = 'block';
 
-      // ── Directory browser ─────────────────────────────────────────────────
-      const browseState = { path: '', entries: [] };
+  if (!tab.term) {
+    const term = new Terminal({
+      theme: { background: '#0A0A0A', foreground: '#E5E2E1', cursor: '#E5E2E1', selectionBackground: 'rgba(96,165,250,0.3)' },
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: 13,
+      lineHeight: 1.5,
+      cursorBlink: tab.kind === 'pty',
+      disableStdin: tab.kind === 'log',
+    });
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(wrap);
+    fitAddon.fit();
+    tab.term = term;
+    tab.fitAddon = fitAddon;
 
-      async function fetchDir(path) {
-        const res  = await fetch(`/api/fs?path=${encodeURIComponent(path)}`);
-        const data = await res.json();
-        browseState.path    = data.path;
-        browseState.entries = data.entries || [];
-      }
+    if (tab.kind === 'pty') connectPtyWs(tab);
+    if (tab.kind === 'log') {
+      term.write('\x1b[90m[Claude Code terminal ready]\x1b[0m\r\n');
+    }
 
-      function renderBrowser() {
-        document.getElementById('browser-path').textContent = browseState.path;
-        const list = document.getElementById('browser-list');
-        list.innerHTML = '';
-        if (browseState.entries.length === 0) {
-          list.innerHTML = '<div class="px-4 py-3 text-xs font-mono text-on-surface-variant opacity-40">No subdirectories</div>';
-          return;
-        }
-        browseState.entries.forEach(entry => {
-          const div = document.createElement('div');
-          div.className = 'flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-surface-container-high transition-colors text-sm font-mono text-on-surface';
-          div.innerHTML = `<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings:'FILL' 1;">folder</span>${esc(entry.name)}`;
-          div.onclick = async () => {
-            await fetchDir(browseState.path + '/' + entry.name);
-            renderBrowser();
-          };
-          list.appendChild(div);
-        });
-      }
+    // re-fit on panel resize
+    new ResizeObserver(() => { try { fitAddon.fit(); } catch(_){} }).observe(wrap);
+  } else {
+    try { tab.fitAddon.fit(); } catch(_){}
+  }
+}
 
-      async function openBrowser() {
-        const startPath = document.getElementById('cwdInput').value.trim() || '';
-        await fetchDir(startPath);
-        renderBrowser();
-        document.getElementById('dir-browser').classList.remove('hidden');
-      }
+function writeLog(text) {
+  const tab = tabs.find(t => t.kind === 'log');
+  if (tab?.term) tab.term.write(text);
+}
 
-      async function goUp() {
-        await fetchDir(browseState.path + '/..');
-        renderBrowser();
-      }
+// PTY tab
+function addPtyTab() {
+  const id = 'pty-' + Date.now();
+  const label = `Shell ${tabs.filter(t => t.kind === 'pty').length + 1}`;
+  tabs.push({ id, label, kind: 'pty', term: null, fitAddon: null, ws: null });
+  renderTabs();
+  activateTab(id);
+  if (!termVisible) showTerminal();
+}
 
-      async function goHome() {
-        await fetchDir('');
-        renderBrowser();
-      }
+function connectPtyWs(tab) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  tab.ws = new WebSocket(`${proto}://${location.host}/ws/${tab.id}`);
+  tab.ws.binaryType = 'arraybuffer';
+  tab.ws.onopen = () => sendResize(tab);
+  tab.ws.onmessage = e => {
+    const data = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : e.data;
+    tab.term?.write(data);
+  };
+  tab.ws.onclose = () => {
+    tab.term?.write('\r\n\x1b[90m[disconnected]\x1b[0m\r\n');
+  };
+  tab.term.onData(d => tab.ws.readyState === 1 && tab.ws.send(d));
+  tab.term.onResize(({ cols, rows }) => sendResize(tab, cols, rows));
+}
 
-      function selectDir() {
-        document.getElementById('cwdInput').value = browseState.path;
-        document.getElementById('dir-browser').classList.add('hidden');
-      }
+function sendResize(tab, cols, rows) {
+  if (!tab.ws || tab.ws.readyState !== 1) return;
+  cols = cols || tab.term?.cols || 80;
+  rows = rows || tab.term?.rows || 24;
+  tab.ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+}
 
-      // Close browser on outside click
-      document.addEventListener('click', (e) => {
-        const browser = document.getElementById('dir-browser');
-        if (!browser.classList.contains('hidden') && !browser.contains(e.target) && e.target.id !== 'cwdInput') {
-          const browseBtn = e.target.closest('button[onclick="openBrowser()"]');
-          if (!browseBtn) browser.classList.add('hidden');
-        }
-      });
+// ── Terminal Panel Toggle & Resize ────────────────────────────────────────
+function showTerminal() {
+  termVisible = true;
+  const panel = document.getElementById('term-panel');
+  panel.style.display = 'flex';
+  ensureLogTab();
+  setTimeout(() => {
+    const tab = tabs.find(t => t.id === activeTabId);
+    try { tab?.fitAddon?.fit(); } catch(_){}
+  }, 50);
+}
 
-      // ── Init ──────────────────────────────────────────────────────────────
-      // 새로고침 후 서버에 남아있는 태스크 목록을 사이드바에 복원
-      (async () => {
-        try {
-          const list = await fetch('/api/tasks').then(r => r.json());
-          tasksList = list;
-          if (tasksList.length > 0) renderTaskList();
-        } catch (_) {}
-      })();
-      addShell();
-    </script>
-  </body>
+function hideTerminal() {
+  termVisible = false;
+  document.getElementById('term-panel').style.display = 'none';
+}
+
+function toggleTerminal() {
+  termVisible ? hideTerminal() : showTerminal();
+}
+
+function initResizeHandle() {
+  const handle = document.getElementById('resize-handle');
+  const panel = document.getElementById('term-panel');
+  let startY, startH;
+  handle.addEventListener('mousedown', e => {
+    startY = e.clientY;
+    startH = panel.offsetHeight;
+    const onMove = e => {
+      const delta = startY - e.clientY;
+      panel.style.height = Math.max(100, Math.min(600, startH + delta)) + 'px';
+      const tab = tabs.find(t => t.id === activeTabId);
+      try { tab?.fitAddon?.fit(); } catch(_){}
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+// ── New Chat Modal ────────────────────────────────────────────────────────
+function openNewChatModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.style.removeProperty('display');
+  setTimeout(() => document.getElementById('modal-cwd').focus(), 50);
+  document.getElementById('modal-cwd').onkeydown = e => { if (e.key === 'Enter') createChat(); };
+  document.getElementById('modal-title').onkeydown = e => { if (e.key === 'Enter') createChat(); };
+}
+
+function closeNewChatModal() {
+  document.getElementById('modal-overlay').style.setProperty('display', 'none', 'important');
+  document.getElementById('modal-cwd').value = '';
+  document.getElementById('modal-title').value = '';
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeNewChatModal();
+}
+
+async function createChat() {
+  const cwd = document.getElementById('modal-cwd').value.trim();
+  if (!cwd) { document.getElementById('modal-cwd').focus(); return; }
+  const title = document.getElementById('modal-title').value.trim() || cwd;
+  closeNewChatModal();
+  const chat = await api('POST', '/api/chats', { cwd, title });
+  await loadChats();
+  selectChat(chat.id, chat);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: {} };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch(path, opts);
+  return res.json().catch(() => ({}));
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Very minimal markdown-like rendering (bold, code)
+function renderMarkdownLite(text) {
+  return esc(text)
+    .replace(/`([^`]+)`/g, '<code class="font-mono text-xs bg-surface-high px-1 py-0.5 rounded text-primary">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/^(\d+\.\s)/gm, '<span class="text-on-surface-variant">$1</span>')
+    .replace(/^[-•]\s(.+)/gm, '  <span class="text-on-surface-variant">•</span> $1')
+    .replace(/\n/g, '<br>');
+}
+</script>
+</body>
 </html>
