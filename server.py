@@ -69,13 +69,11 @@ async def run_task(task: dict):
 
         safe_prompt = task["prompt"].replace('"', "'")
         if sys.platform == "win32":
-            # claude.exe는 Node.js 런처이므로 winpty 직접 스폰 시 자식 프로세스가
-            # PTY 콘솔에서 분리되어 proc.read()에 출력이 잡히지 않음.
-            # PowerShell을 PTY 루트로 경유하면 shell 세션과 동일하게 동작함.
-            # -NonInteractive 플래그 사용 시 Node.js(claude) 출력이 winpty에 캡처되지
-            # 않으므로 제거한다.
+            # PowerShell -Command 모드에서는 Node.js(claude) 출력이 winpty에 캡처되지 않음.
+            # 인터랙티브 PowerShell을 스폰한 뒤 stdin으로 명령을 주입하면
+            # Shell 터미널과 동일한 방식으로 동작해 출력이 캡처된다.
             safe_prompt_ps = safe_prompt.replace("'", "''")
-            cmd = f"powershell.exe -NoProfile -NoLogo -Command \"claude --dangerously-skip-permissions -p '{safe_prompt_ps}'\""
+            cmd = "powershell.exe -NoProfile -NoLogo"
         else:
             cmd = f'claude --dangerously-skip-permissions -p "{safe_prompt}"'
 
@@ -88,6 +86,11 @@ async def run_task(task: dict):
             return
 
         task["proc"] = proc
+
+        if sys.platform == "win32":
+            # PS 초기화 대기 후 명령 주입; 완료 후 PowerShell이 자동 종료되도록 exit 추가
+            await asyncio.sleep(1.0)
+            proc.write(f"claude --dangerously-skip-permissions -p '{safe_prompt_ps}'; exit\r\n")
 
         loop = asyncio.get_event_loop()
 
