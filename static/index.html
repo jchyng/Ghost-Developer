@@ -658,6 +658,14 @@
       });
 
       // ── Init ──────────────────────────────────────────────────────────────
+      // 새로고침 후 서버에 남아있는 태스크 목록을 사이드바에 복원
+      (async () => {
+        try {
+          const list = await fetch('/api/tasks').then(r => r.json());
+          tasksList = list;
+          if (tasksList.length > 0) renderTaskList();
+        } catch (_) {}
+      })();
       addShell();
     </script>
   </body>
