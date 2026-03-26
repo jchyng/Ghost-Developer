@@ -90,6 +90,12 @@ def update_chat_session_id(chat_id: str, session_id: str):
         )
 
 
+def update_chat_title(chat_id: str, title: str) -> dict | None:
+    with get_conn() as conn:
+        conn.execute("UPDATE chats SET title=? WHERE id=?", (title, chat_id))
+    return get_chat(chat_id)
+
+
 def delete_chat(chat_id: str):
     with get_conn() as conn:
         conn.execute("DELETE FROM chats WHERE id=?", (chat_id,))

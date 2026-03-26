@@ -7,6 +7,7 @@ import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
 import db
 import orchestrator as orc
@@ -360,6 +361,18 @@ async def delete_chat(chat_id: str):
     return {"ok": True}
 
 
+@app.patch("/api/chats/{chat_id}")
+async def rename_chat(chat_id: str, body: dict):
+    title = (body.get("title") or "").strip()
+    if not title:
+        return {"error": "title required"}
+    chat = db.update_chat_title(chat_id, title)
+    if not chat:
+        return {"error": "not found"}
+    await _broadcast(chat_id, {"type": "title_update", "chat_id": chat_id, "title": title})
+    return chat
+
+
 @app.get("/api/chats/{chat_id}/messages")
 async def get_messages(chat_id: str):
     return db.list_messages(chat_id)
@@ -384,8 +397,13 @@ async def send_message(chat_id: str, body: dict):
     sentinel = orc.Orchestrator(chat_id)
     orc._running[chat_id] = sentinel
 
+    # 첫 메시지 여부 확인 (orchestrator가 저장하기 전에 체크)
+    is_first = len(db.list_messages(chat_id)) == 0
+
     # Orchestrator는 백그라운드 태스크로 실행
     asyncio.create_task(_run_orchestrator(chat_id, content, sentinel))
+    if is_first:
+        asyncio.create_task(_generate_title(chat_id, content))
     return {"ok": True}
 
 
@@ -434,6 +452,33 @@ async def _broadcast(chat_id: str, event: dict):
         except Exception:
             dead.add(ws)
     _chat_subs.get(chat_id, set()).difference_update(dead)
+
+
+async def _generate_title(chat_id: str, first_message: str):
+    """첫 메시지 내용을 바탕으로 GPT가 채팅 제목을 자동 생성한다."""
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        return
+    model = os.getenv("ORCHESTRATOR_MODEL", "gpt-4o-mini")
+    client = AsyncOpenAI(api_key=api_key)
+    try:
+        resp = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content":
+                    "Generate a concise chat title of 4-6 words that captures the task. "
+                    "Return only the title, no punctuation, no quotes."},
+                {"role": "user", "content": first_message},
+            ],
+            max_tokens=20,
+            temperature=0.3,
+        )
+        title = resp.choices[0].message.content.strip()
+        if title:
+            db.update_chat_title(chat_id, title)
+            await _broadcast(chat_id, {"type": "title_update", "chat_id": chat_id, "title": title})
+    except Exception:
+        pass  # 실패해도 조용히 — 기존 title(cwd) 유지
 
 
 async def _run_orchestrator(chat_id: str, user_message: str, instance: orc.Orchestrator):

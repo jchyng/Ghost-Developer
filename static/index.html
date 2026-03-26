@@ -271,8 +271,19 @@ function renderChatList(chats) {
     btn.innerHTML = `
       <div class="pipe absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-secondary rounded-r-full shadow-[0_0_8px_rgba(69,223,164,0.4)]"></div>
       <i data-lucide="message-square" class="w-4 h-4 flex-shrink-0 text-on-surface-variant"></i>
-      <span class="truncate text-on-surface-variant group-hover:text-on-surface">${esc(chat.title || chat.cwd)}</span>`;
+      <span class="chat-title truncate flex-1 text-on-surface-variant group-hover:text-on-surface">${esc(chat.title || chat.cwd)}</span>
+      <div class="chat-actions flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <button class="btn-rename p-1 rounded hover:bg-surface-high text-on-surface-variant hover:text-on-surface transition-colors" title="Rename">
+          <i data-lucide="pencil" class="w-3 h-3 pointer-events-none"></i>
+        </button>
+        <button class="btn-delete p-1 rounded hover:bg-red-900/20 text-on-surface-variant hover:text-red-400 transition-colors" title="Delete">
+          <i data-lucide="trash-2" class="w-3 h-3 pointer-events-none"></i>
+        </button>
+      </div>`;
     btn.onclick = () => selectChat(chat.id, chat);
+    btn.ondblclick = e => { e.stopPropagation(); startInlineRename(chat.id, btn); };
+    btn.querySelector('.btn-rename').onclick = e => { e.stopPropagation(); startInlineRename(chat.id, btn); };
+    btn.querySelector('.btn-delete').onclick = e => { e.stopPropagation(); confirmDeleteChat(chat.id, chat.title || chat.cwd); };
     nav.appendChild(btn);
   });
   lucide.createIcons();
@@ -285,7 +296,7 @@ function highlightChat(chatId) {
     const active = el.dataset.id === chatId;
     el.classList.toggle('active', active);
     el.querySelector('.pipe')?.classList.toggle('opacity-100', active);
-    el.querySelector('span')?.classList.toggle('text-on-surface', active);
+    el.querySelector('.chat-title')?.classList.toggle('text-on-surface', active);
   });
 }
 
@@ -368,7 +379,72 @@ function handleChatEvent(e) {
       setRunning(false);
       break;
     }
+    case 'title_update': {
+      const el = document.querySelector(`.chat-item[data-id="${e.chat_id}"] .chat-title`);
+      if (el && el.tagName !== 'INPUT') el.textContent = e.title;
+      break;
+    }
   }
+}
+
+// ── Chat Management ────────────────────────────────────────────────────────
+async function confirmDeleteChat(chatId, title) {
+  const item = document.querySelector(`.chat-item[data-id="${chatId}"]`);
+  if (!item) return;
+  const actions = item.querySelector('.chat-actions');
+  actions.innerHTML = `
+    <span class="text-[0.6rem] font-mono text-red-400 mr-1">Delete?</span>
+    <button class="btn-yes p-1 rounded hover:bg-red-900/30 text-red-400 text-[0.6rem] font-mono">Yes</button>
+    <button class="btn-no p-1 rounded hover:bg-surface-high text-on-surface-variant text-[0.6rem] font-mono">No</button>`;
+  actions.style.opacity = '1';
+
+  actions.querySelector('.btn-yes').onclick = async e => {
+    e.stopPropagation();
+    await api('DELETE', `/api/chats/${chatId}`);
+    if (activeChatId === chatId) {
+      activeChatId = null;
+      clearMessages();
+      if (chatWs) { chatWs.onclose = null; chatWs.close(); chatWs = null; }
+      document.getElementById('header-cwd').textContent = '—';
+    }
+    await loadChats();
+  };
+  actions.querySelector('.btn-no').onclick = e => { e.stopPropagation(); loadChats(); };
+}
+
+function startInlineRename(chatId, itemEl) {
+  const titleSpan = itemEl.querySelector('.chat-title');
+  if (!titleSpan || titleSpan.tagName === 'INPUT') return;
+  const currentTitle = titleSpan.textContent;
+  const actions = itemEl.querySelector('.chat-actions');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentTitle;
+  input.className = 'chat-title flex-1 bg-transparent text-sm text-on-surface outline-none border-b border-secondary/60 min-w-0';
+  titleSpan.replaceWith(input);
+  actions.style.opacity = '0';
+  input.focus();
+  input.select();
+
+  async function commit() {
+    const newTitle = input.value.trim();
+    const span = document.createElement('span');
+    span.className = 'chat-title truncate flex-1 text-on-surface-variant group-hover:text-on-surface';
+    span.textContent = newTitle || currentTitle;
+    input.replaceWith(span);
+    actions.style.opacity = '';
+    if (newTitle && newTitle !== currentTitle) {
+      await api('PATCH', `/api/chats/${chatId}`, { title: newTitle });
+    }
+  }
+
+  input.onblur = commit;
+  input.onkeydown = e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = currentTitle; input.blur(); }
+  };
+  input.onclick = e => e.stopPropagation();
 }
 
 // ── Messages ──────────────────────────────────────────────────────────────
