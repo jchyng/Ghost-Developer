@@ -100,6 +100,30 @@ async def run_task(task: dict):
         await git_commit(cwd, f"Auto-commit: After {task['prompt'][:50]}")
 
 
+# ── 파일시스템 브라우저 ────────────────────────────────────────────────────
+
+@app.get("/api/fs")
+async def browse_fs(path: str = ""):
+    if not path:
+        path = os.path.expanduser("~")
+    try:
+        abs_path = os.path.abspath(path)
+        if not os.path.isdir(abs_path):
+            return {"path": abs_path, "entries": [], "error": "not a directory"}
+        entries = []
+        for name in sorted(os.listdir(abs_path)):
+            if name.startswith("."):
+                continue
+            full = os.path.join(abs_path, name)
+            if os.path.isdir(full):
+                entries.append({"name": name, "type": "dir"})
+        return {"path": abs_path, "entries": entries}
+    except PermissionError:
+        return {"path": path, "entries": [], "error": "permission denied"}
+    except Exception as e:
+        return {"path": path, "entries": [], "error": str(e)}
+
+
 # ── REST API ──────────────────────────────────────────────────────────────
 
 @app.post("/tasks")
@@ -234,6 +258,21 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
             sessions.pop(session_id, None)
 
     await asyncio.gather(pty_to_ws(), ws_to_pty(), return_exceptions=True)
+
+
+@app.post("/api/tasks")
+async def create_task_api(body: dict):
+    return await create_task(body)
+
+
+@app.get("/api/tasks")
+async def list_tasks_api():
+    return await list_tasks()
+
+
+@app.delete("/api/tasks/{task_id}")
+async def cancel_task_api(task_id: str):
+    return await cancel_task(task_id)
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
