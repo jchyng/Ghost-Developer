@@ -29,14 +29,17 @@ def spawn_pty(cmd, cwd=None, dimensions=(24, 80)):
 
 # ── Git Auto-commit ───────────────────────────────────────────────────────
 
-async def git_commit(cwd: str, message: str):
+async def git_commit(cwd: str, message: str, output_buf: bytearray | None = None):
     for args in (["git", "add", "."], ["git", "commit", "-m", message]):
         p = await asyncio.create_subprocess_exec(
             *args, cwd=cwd,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        await p.wait()
+        _, err = await p.communicate()
+        if output_buf is not None and err:
+            line = f"\r\n\x1b[90m[git] {err.decode(errors='replace').strip()}\x1b[0m\r\n"
+            output_buf.extend(line.encode())
 
 
 # ── 태스크 직렬화 (내부 필드 제외) ───────────────────────────────────────
@@ -56,7 +59,7 @@ async def run_task(task: dict):
         task["output"] = bytearray()
         task["output_event"] = asyncio.Event()
 
-        await git_commit(cwd, f"Auto-commit: Before {task['prompt'][:50]}")
+        await git_commit(cwd, f"Auto-commit: Before {task['prompt'][:50]}", task["output"])
 
         safe_prompt = task["prompt"].replace('"', "'")
         cmd = f'claude --dangerously-skip-permissions -p "{safe_prompt}"'
@@ -97,7 +100,7 @@ async def run_task(task: dict):
             task["status"] = "done"
         task["output_event"].set()
 
-        await git_commit(cwd, f"Auto-commit: After {task['prompt'][:50]}")
+        await git_commit(cwd, f"Auto-commit: After {task['prompt'][:50]}", task["output"])
 
 
 # ── 파일시스템 브라우저 ────────────────────────────────────────────────────
@@ -176,6 +179,9 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
             await websocket.send_bytes(b"\r\n[task not found]\r\n")
             await websocket.close()
             return
+
+        # 연결 즉시 대기 메시지 출력 (터미널이 비어 보이지 않도록)
+        await websocket.send_bytes(b"\r\n\x1b[90m[\xec\x9e\xa0\xec\x8b\x9c \xeb\x8c\x80\xea\xb8\xb0 \xec\xa4\x91...]\x1b[0m\r\n")
 
         # run_task가 output_event를 초기화할 때까지 대기
         while task["output_event"] is None:

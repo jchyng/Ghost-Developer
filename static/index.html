@@ -175,7 +175,7 @@
       <header class="h-16 flex-shrink-0 bg-[#131313]/80 backdrop-blur-xl flex justify-between items-center px-12 z-40 border-b border-white/5">
         <div class="flex items-center gap-8">
           <div class="flex flex-col">
-            <span class="text-[9px] font-mono uppercase tracking-widest text-on-surface-variant opacity-50">Current Context</span>
+            <span class="text-[9px] font-mono uppercase tracking-widest text-on-surface-variant opacity-50">Session</span>
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-[14px] text-primary">folder_open</span>
               <span id="header-cwd" class="text-xs font-mono text-primary-fixed">~</span>
@@ -248,12 +248,24 @@
                 </div>
                 <!-- Directory browser popover -->
                 <div id="dir-browser" class="hidden absolute top-full left-0 right-0 mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-20 overflow-hidden">
-                  <div
-                    class="flex items-center gap-2 px-4 py-2 bg-surface-container-low border-b border-outline-variant/20 cursor-pointer hover:bg-surface-container-high transition-colors"
-                    onclick="goUp()"
-                  >
-                    <span class="material-symbols-outlined text-[14px] text-on-surface-variant">arrow_upward</span>
-                    <span id="browser-path" class="text-xs font-mono text-on-surface-variant truncate flex-1"></span>
+                  <div class="flex items-center gap-1 px-2 py-2 bg-surface-container-low border-b border-outline-variant/20">
+                    <button
+                      type="button"
+                      onclick="goHome()"
+                      title="Home"
+                      class="text-on-surface-variant hover:text-secondary transition-colors p-1 rounded"
+                    >
+                      <span class="material-symbols-outlined text-[14px]">home</span>
+                    </button>
+                    <button
+                      type="button"
+                      onclick="goUp()"
+                      title="Up"
+                      class="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded"
+                    >
+                      <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+                    </button>
+                    <span id="browser-path" class="text-xs font-mono text-on-surface-variant truncate flex-1 ml-1"></span>
                   </div>
                   <div id="browser-list" class="max-h-52 overflow-y-auto custom-scrollbar"></div>
                   <div class="flex justify-end px-4 py-2 bg-surface-container-low border-t border-outline-variant/20">
@@ -368,8 +380,8 @@
         const promptEl = document.getElementById('header-prompt');
         if (sessionId?.startsWith('shell')) {
           const shell = shellSessions.find(s => s.id === sessionId);
-          cwdEl.textContent    = '~';
-          promptEl.textContent = shell ? shell.label : 'Interactive Shell';
+          cwdEl.textContent    = shell ? shell.label : 'Shell';
+          promptEl.textContent = 'Interactive Shell';
           return;
         }
         const task = tasksList.find(t => t.session_id === sessionId);
@@ -675,6 +687,11 @@
 
       async function goUp() {
         await fetchDir(browseState.path + '/..');
+        renderBrowser();
+      }
+
+      async function goHome() {
+        await fetchDir('');
         renderBrowser();
       }
 
