@@ -62,7 +62,14 @@ async def run_task(task: dict):
         await git_commit(cwd, f"Auto-commit: Before {task['prompt'][:50]}", task["output"])
 
         safe_prompt = task["prompt"].replace('"', "'")
-        cmd = f'claude --dangerously-skip-permissions -p "{safe_prompt}"'
+        if sys.platform == "win32":
+            # claude.exe는 Node.js 런처이므로 winpty 직접 스폰 시 자식 프로세스가
+            # PTY 콘솔에서 분리되어 proc.read()에 출력이 잡히지 않음.
+            # PowerShell을 PTY 루트로 경유하면 shell 세션과 동일하게 동작함.
+            safe_prompt_ps = safe_prompt.replace("'", "''")
+            cmd = f"powershell.exe -NoProfile -NoLogo -NonInteractive -Command \"claude --dangerously-skip-permissions -p '{safe_prompt_ps}'\""
+        else:
+            cmd = f'claude --dangerously-skip-permissions -p "{safe_prompt}"'
 
         try:
             proc = spawn_pty(cmd, cwd=cwd)
