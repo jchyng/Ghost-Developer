@@ -394,25 +394,25 @@ function addMessage(role, content, scroll = true) {
   const wrap = document.createElement('div');
 
   if (role === 'user') {
-    wrap.className = 'flex justify-end mb-3';
+    wrap.className = 'flex justify-end mb-4';
     wrap.innerHTML = `
-      <div class="max-w-[58%] px-4 py-2.5 text-sm leading-relaxed text-[#E5E2E1]
-                  whitespace-pre-wrap break-words rounded-2xl
+      <div class="max-w-[68%] px-5 py-4 text-sm leading-relaxed text-[#E5E2E1]
+                  whitespace-pre-wrap break-words rounded-3xl
                   bg-[#1c2a22] border border-[#45DFA4]/10">
         ${esc(content)}
       </div>`;
   } else {
-    wrap.className = 'mb-5';
+    wrap.className = 'mb-8';
     wrap.innerHTML = `
-      <div class="flex items-center gap-2.5 mb-1.5">
-        <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
-                    bg-[#0c1d14] border border-[#45DFA4]/28
-                    shadow-[0_0_12px_rgba(69,223,164,0.1)]">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                    bg-[#0c1d14] border border-[#45DFA4]/30
+                    shadow-[0_0_14px_rgba(69,223,164,0.12)]">
           ${SPARKLE_SVG}
         </div>
-        <span class="text-[0.78rem] font-medium text-[#E5E2E1]/60 tracking-tight">AI Agent</span>
+        <span class="text-[0.82rem] font-medium text-[#E5E2E1]/65">AI Agent</span>
       </div>
-      <div class="text-sm leading-[1.8] text-[#D4D1CF]/85 whitespace-pre-wrap break-words">
+      <div class="pl-11 text-sm leading-[1.9] text-[#D4D1CF]/88 whitespace-pre-wrap break-words">
         ${renderMarkdownLite(content)}
       </div>`;
   }
