@@ -112,8 +112,8 @@
   <div class="flex-1 flex flex-col min-h-0">
 
     <!-- Chat Messages -->
-    <div id="chat-area" class="flex-1 overflow-y-auto py-6">
-      <div id="chat-inner" class="max-w-3xl mx-auto px-6 flex flex-col gap-1">
+    <div id="chat-area" class="flex-1 overflow-y-auto py-8">
+      <div id="chat-inner" class="max-w-2xl mx-auto px-8 flex flex-col">
         <!-- Empty state -->
         <div id="empty-state" class="flex flex-col items-center justify-center text-on-surface-variant gap-3 py-32">
           <i data-lucide="sparkles" class="w-10 h-10 opacity-20"></i>
@@ -394,27 +394,25 @@ function addMessage(role, content, scroll = true) {
   const wrap = document.createElement('div');
 
   if (role === 'user') {
-    // Gemini style: simple pill bubble, no label
-    wrap.className = 'flex justify-end mb-5';
+    wrap.className = 'flex justify-end mb-3';
     wrap.innerHTML = `
-      <div class="max-w-[62%] px-5 py-3 text-sm leading-relaxed text-[#E5E2E1]
-                  whitespace-pre-wrap break-words rounded-[20px]
+      <div class="max-w-[58%] px-4 py-2.5 text-sm leading-relaxed text-[#E5E2E1]
+                  whitespace-pre-wrap break-words rounded-2xl
                   bg-[#1c2a22] border border-[#45DFA4]/10">
         ${esc(content)}
       </div>`;
   } else {
-    // Gemini style: avatar+name header row, then plain text — no card background
-    wrap.className = 'mb-7';
+    wrap.className = 'mb-5';
     wrap.innerHTML = `
-      <div class="flex items-center gap-2.5 mb-2">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+      <div class="flex items-center gap-2.5 mb-1.5">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
                     bg-[#0c1d14] border border-[#45DFA4]/28
-                    shadow-[0_0_14px_rgba(69,223,164,0.11)]">
+                    shadow-[0_0_12px_rgba(69,223,164,0.1)]">
           ${SPARKLE_SVG}
         </div>
-        <span class="text-[0.8rem] font-medium text-[#E5E2E1]/70 tracking-tight">AI Agent</span>
+        <span class="text-[0.78rem] font-medium text-[#E5E2E1]/60 tracking-tight">AI Agent</span>
       </div>
-      <div class="text-sm leading-[1.85] text-[#D4D1CF]/85 whitespace-pre-wrap break-words pl-0.5">
+      <div class="text-sm leading-[1.8] text-[#D4D1CF]/85 whitespace-pre-wrap break-words">
         ${renderMarkdownLite(content)}
       </div>`;
   }
