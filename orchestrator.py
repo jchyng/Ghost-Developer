@@ -203,7 +203,7 @@ async def _git_commit(cwd: str, message: str):
 
     def _run(args):
         import subprocess
-        return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+        return subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     for args in (["git", "add", "."], ["git", "commit", "-m", message]):
         await loop.run_in_executor(None, _run, args)
