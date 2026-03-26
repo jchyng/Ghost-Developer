@@ -345,6 +345,8 @@
         updateHeader(sessionId);
         updateActiveTab(sessionId);
 
+        updateStopBtn(sessionId);
+
         ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
         ws.binaryType = 'arraybuffer';
         ws.onopen = () => {
@@ -499,27 +501,48 @@
             isSelected
               ? 'pl-4 border-l-2 border-[#45DFA4]'
               : 'pl-4 opacity-60 hover:opacity-100',
-            'transition-all duration-200 py-2.5 cursor-pointer hover:bg-[#2A2A2A] rounded-r-lg mb-1 flex items-center justify-between pr-3'
+            'group transition-all duration-200 py-2.5 cursor-pointer hover:bg-[#2A2A2A] rounded-r-lg mb-1 flex items-center justify-between pr-3'
           ].join(' ');
           div.onclick = () => connectTo(shell.id);
+          const xBtnCls = isSelected
+            ? 'opacity-40 group-hover:opacity-100'
+            : 'opacity-0 group-hover:opacity-60';
           div.innerHTML = `
             <span class="text-sm font-medium text-[#E5E2E1] flex items-center gap-1.5">
               <span class="material-symbols-outlined text-[14px] ${isSelected ? 'text-secondary' : 'text-on-surface-variant'}">terminal</span>
               ${esc(shell.label)}
             </span>
             <button
-              class="text-on-surface-variant hover:text-error transition-colors opacity-0 group-hover:opacity-100"
+              class="text-on-surface-variant hover:text-error transition-all ${xBtnCls}"
               onclick="removeShell('${shell.id}', event)"
               title="Close shell"
-              style="opacity: ${isSelected ? '0.6' : '0'};"
-              onmouseenter="this.style.opacity='1'"
-              onmouseleave="this.style.opacity='${isSelected ? '0.6' : '0'}'"
             >
               <span class="material-symbols-outlined text-[14px]">close</span>
             </button>
           `;
           container.appendChild(div);
         });
+      }
+
+      // ── Interrupt button state ────────────────────────────────────────────
+      function updateStopBtn(sessionId) {
+        const btn = document.getElementById('stop-btn');
+        let cls, label;
+        if (!sessionId || sessionId.startsWith('shell')) {
+          cls   = 'bg-surface-container-high hover:bg-surface-container text-on-surface-variant font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-outline-variant/20 transition-all duration-200 flex items-center gap-2 active:scale-95';
+          label = 'Send Ctrl+C';
+        } else {
+          const task = tasksList.find(t => t.session_id === sessionId);
+          if (task && (task.status === 'running' || task.status === 'pending')) {
+            cls   = 'bg-error-container hover:bg-error text-on-error-container font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-error/20 transition-all duration-200 flex items-center gap-2 active:scale-95';
+            label = 'Interrupt (Ctrl+C)';
+          } else {
+            cls   = 'bg-error-container/30 text-on-error-container/40 font-mono text-[10px] uppercase tracking-widest py-2 px-4 rounded border border-error/10 transition-all duration-200 flex items-center gap-2 opacity-40 cursor-not-allowed';
+            label = 'Interrupt (Ctrl+C)';
+          }
+        }
+        btn.className = cls;
+        btn.innerHTML = `<span class="material-symbols-outlined text-sm">stop_circle</span>${label}`;
       }
 
       // ── Stop current task / send Ctrl+C ──────────────────────────────────
@@ -608,6 +631,7 @@
           renderTaskList();
           if (currentSession && !currentSession.startsWith('shell')) {
             updateHeader(currentSession);
+            updateStopBtn(currentSession);
           }
         } catch (_) {}
       }, 2000);
