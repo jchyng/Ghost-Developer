@@ -1,54 +1,110 @@
-# AI Company - MVP 기획서 (v1.0) — 구현 완료
+# AI Company - 기획서
 
-> **목표:** 내가 웹 브라우저에서 작업 지시를 내리면, 서버의 터미널(PTY)에서 Claude Code가 `dangerously-skip-permissions` 상태로 완벽하게 코딩을 수행하는 **'단일 핵심 루프'**를 완성한다.
+---
 
-## 1. 핵심 아키텍처 (Thin Wrapper)
-*   **프론트엔드 (Web UI):** 
-    *   단일 페이지 애플리케이션 (HTML/JS/CSS).
-    *   `xterm.js`를 사용한 브라우저 터미널 에뮬레이터.
-    *   여러 프로젝트(작업 디렉토리)를 탭 형태로 관리.
-*   **백엔드 (Python / FastAPI):**
-    *   Web UI와 로컬 터미널 간의 브리지 역할만 수행.
-    *   Python `pty` 모듈을 사용하여 자식 프로세스 생성 및 관리.
-    *   WebSocket을 통해 `xterm.js`와 PTY(stdin/stdout) 간 양방향 바이트 스트림 중계.
-*   **AI 엔진 (Claude Code):**
-    *   모든 지능, 권한, 에이전트 관리는 전적으로 Claude Code에 위임.
-    *   실행 옵션: `claude --dangerously-skip-permissions` (모든 권한 허용, 무한 직진).
+## v1.0 — 구현 완료
 
-## 2. MVP 핵심 기능
+> **목표:** 웹 브라우저에서 작업 지시를 내리면, 서버의 PTY에서 Claude Code가 `--dangerously-skip-permissions`로 코딩을 수행하는 단일 핵심 루프 완성.
 
-### A. 작업 큐 및 프로세스 관리 (In-Memory) ✅
-*   복잡한 DB(SQLite) 없이 파이썬 딕셔너리/리스트를 활용해 In-Memory로 상태 관리.
-*   **작업(Task) 구조:** `{ id, cwd, prompt, status: 'pending'|'running'|'done'|'error'|'cancelled' }`
-*   사용자가 프롬프트와 프로젝트 경로(`cwd`)를 입력하면 큐에 추가.
-*   **Mutex (동시성 제어):** 동일한 `cwd`를 가진 작업은 동시에 실행되지 않고 순차적으로 대기.
-*   태스크 강제 종료 (`DELETE /api/tasks/{id}`) 추가 구현.
-*   페이지 새로고침 후 서버 잔존 태스크를 사이드바에 자동 복원.
+**구현 완료 항목:**
+- 태스크 큐 (In-Memory) + cwd별 asyncio.Lock 직렬화
+- Claude Code PTY 실행 + 실시간 WebSocket 스트리밍
+- git auto-commit Before/After
+- 수동 멀티 Shell 탭 (PowerShell/bash), PTY는 WS 단절 후 유지
+- 세션별 독립 xterm 인스턴스 (탭 전환 후 복귀 시 이전 출력 유지)
+- 서버 사이드 디렉터리 브라우저 (`GET /api/fs`)
+- 태스크 강제 종료 (`DELETE /api/tasks/{id}`)
+- 페이지 새로고침 후 태스크 사이드바 자동 복원
 
-### B. 터미널 멀티플렉싱 ✅
-*   세션마다 독립적인 xterm.js 인스턴스 유지 → 탭 전환 후 복귀 시 이전 출력 그대로 보존.
-*   Claude Code의 기본 터미널 출력(ANSI 색상, 스피너 등)이 깨지지 않고 웹에 렌더링.
-*   수동 인터랙티브 셸(PowerShell/bash) 멀티 탭 추가 구현 — WS 단절 시 PTY 유지, 재연결 시 재사용.
+**v1의 한계:**
+- `claude -p` 단발 실행 → 중간 개입 불가, 대화 불가
+- 작업 완료 후 이어서 지시하거나 방향 수정 불가
+- 서버 재시작 시 모든 기록 소실
 
-### C. 최소한의 안전장치: Auto-Commit ✅
-*   AI가 코드를 망치는 것을 대비한 유일하고 가장 확실한 보험.
-*   백엔드 로직:
-    1. 작업 시작 직전: 해당 `cwd`에서 `git add . && git commit -m "Auto-commit: Before [Task Name]"` 자동 실행.
-    2. 작업 완료 직후: `git add . && git commit -m "Auto-commit: After [Task Name]"` 자동 실행.
-*   git stderr를 태스크 터미널 출력에 `[git] ...` 형식으로 기록 (오류 무음 처리 해소).
+---
 
-### D. 프로젝트별 규칙 제어 (CLAUDE.md) ✅
-*   서버 단에서 역할을 지정하지 않는다.
-*   각 프로젝트의 루트 경로에 있는 `CLAUDE.md` 파일에 해당 프로젝트의 코딩 컨벤션, 사용할 서브에이전트, 프롬프트 엔지니어링을 기록한다. Claude Code가 이를 알아서 읽고 따른다.
+## v2.0 — 개발 예정
 
-### E. 기획 외 추가 구현 (실사용 필요 확인 후 반영)
-*   **서버 사이드 디렉터리 브라우저** (`GET /api/fs`): 브라우저 보안 제약으로 `showDirectoryPicker()`가 전체 경로를 반환하지 않아 서버 측 탐색으로 대체.
-*   **cwd localStorage 복원**: 마지막으로 사용한 경로를 기억해 모달 재진입 시 자동 입력.
-*   **Pending 터미널 메시지**: 태스크 WS 연결 즉시 "[잠시 대기 중...]" 출력으로 빈 터미널 체감 해소.
+> **목표:** 채팅으로 지시하면 Orchestrator LLM이 Claude Code를 자율적으로 조작해 작업을 완료한다. 사용자는 언제든 개입할 수 있고, 세션은 영구 보존된다.
 
-## 3. 제외된 기능 (MVP 대상 아님)
-*   사용자 로그인 / 인증 시스템 (로컬 혼자 사용)
-*   Telegram 봇 연동 및 원격 알림
-*   GPT 기반의 프록시 및 출력 모니터링 (자동 판단/질문 로직)
-*   SQLite를 이용한 작업 이력 영구 저장
-*   복잡한 Circuit Breaker (무한 루프 감지기)
+### 핵심 아키텍처
+
+```
+사용자 (채팅)
+    ↕
+Orchestrator LLM (gpt-5.4-mini)
+    ↕  claude -p "..." --session-id X --output-format json
+Claude Code (headless)
+    ↕  tool executions (파일 수정, bash 실행 등)
+파일시스템 / 터미널들
+```
+
+**Orchestrator**는 Claude Code를 headless 모드로 호출하고 JSON 응답을 받아 다음 행동을 결정한다. 사용자는 채팅으로 Orchestrator에게 지시하거나, 터미널에 직접 타이핑해 Claude Code session에 개입할 수 있다.
+
+---
+
+### A. Chat-Primary UI
+
+- **사이드바**: 채팅 세션 목록 (Recent Chats) + New Chat 버튼
+- **메인 영역**: 채팅창 (primary) + 터미널 패널 (토글, secondary)
+- Add Task 모달 폐기 → 채팅 입력창으로 대체
+- 채팅 히스토리 SQLite 영구 저장
+
+### B. Orchestrator 루프
+
+1. 사용자 메시지 수신
+2. `claude -p "지시" --session-id X --dangerously-skip-permissions --output-format json` 호출
+3. JSON 응답 파싱 (결과, tool use 목록, token usage)
+4. 결과를 채팅창에 표시
+5. 작업 완료 판단 → 완료 아니면 2로 반복
+
+**session_id 관리:**
+- 첫 호출 시 `--output-format json`으로 session_id 추출, DB 저장
+- 이후 모든 호출에 `--session-id X` 사용 → 대화 연속성 유지
+- 서버 재시작, 브라우저 새로고침 후에도 동일 session 재개 가능
+
+### C. 컨텍스트 관리
+
+- 매 응답의 `usage.input_tokens` 추적
+- 임계치(예: 80%) 도달 시 Orchestrator가 직접 compact 수행
+  - `claude -p "/compact" --session-id X` 호출
+- auto-compact에 의한 컨텍스트 손실 방지
+
+### D. Rate Limit 자동 스케줄링
+
+- Claude Code 응답이 rate limit 에러일 경우 `retry_after` 타임스탬프 추출
+- 해당 시간 이후 자동 재개 스케줄링 (SQLite에 상태 저장)
+- 서버 재시작 후에도 스케줄 복원
+
+### E. 멀티 터미널 (Chat 세션 소속)
+
+**터미널 패널 구성:**
+- `[Claude Code]` 탭: Orchestrator가 보낸 claude -p 명령 + 응답 로그. 사용자가 직접 타이핑하면 해당 session_id로 즉시 전송 (Orchestrator 우회, 단 Orchestrator도 인지)
+- `[+]` 탭: Orchestrator 또는 사용자가 추가하는 보조 PTY 터미널 (dev server, test runner 등)
+
+**리소스 관리:**
+- 미사용 PTY 터미널 자동 종료 (tmux 방식: 프로세스 종료, scrollback은 DB 보존)
+- Chat 세션 삭제 시 소속 터미널 전체 삭제
+
+**Orchestrator 도구:**
+- `open_terminal(name, cwd)` → 새 PTY 탭 생성
+- `write_to_terminal(id, text)` → PTY stdin 입력
+- `read_terminal(id)` → 최근 출력 읽기
+
+### F. git Auto-Commit (v1에서 유지)
+
+- Chat 세션의 첫 Claude Code 호출 전: `Auto-commit: Before [task]`
+- 작업 완료 후: `Auto-commit: After [task]`
+
+### G. 동시 실행
+
+- 여러 Chat 세션이 각자의 Orchestrator를 가지고 병렬 실행 가능
+- cwd별 Lock은 유지 (동일 디렉토리 동시 작업 방지)
+
+---
+
+### 제외 항목 (v2 대상 아님)
+
+- 사용자 인증 / 멀티 유저
+- Telegram 알림
+- Circuit Breaker (자동 루프 감지)
