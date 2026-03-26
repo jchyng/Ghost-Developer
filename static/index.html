@@ -718,10 +718,19 @@ function initResizeHandle() {
 function openNewChatModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay.style.removeProperty('display');
-  const lastCwd = localStorage.getItem('lastCwd');
-  if (lastCwd) document.getElementById('modal-cwd').value = lastCwd;
   document.getElementById('modal-title').onkeydown = e => { if (e.key === 'Enter') createChat(); };
-  setTimeout(() => document.getElementById('modal-cwd').focus(), 50);
+  setTimeout(async () => {
+    const input = document.getElementById('modal-cwd');
+    const lastCwd = localStorage.getItem('lastCwd');
+    if (lastCwd) {
+      input.value = lastCwd;
+    } else {
+      // 서버에서 OS별 홈 디렉토리를 받아 기본값으로 설정
+      await fetchDir('');
+      input.value = browseState.path;
+    }
+    input.focus();
+  }, 50);
 }
 
 function closeNewChatModal() {
