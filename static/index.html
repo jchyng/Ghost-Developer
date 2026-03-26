@@ -126,26 +126,24 @@
       </div>
 
       <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1">
-        <div class="px-4 py-2 mb-2">
-          <span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant opacity-60">Task Queue</span>
+        <!-- Shell Sessions section -->
+        <div class="px-4 py-2 mb-1 flex items-center justify-between">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant opacity-60">Shells</span>
+          <button
+            onclick="addShell()"
+            class="text-on-surface-variant hover:text-secondary transition-colors"
+            title="New Shell"
+          >
+            <span class="material-symbols-outlined text-[16px]">add</span>
+          </button>
         </div>
 
-        <!-- Shell Tab (static) -->
-        <div
-          id="tab-shell"
-          data-session="shell"
-          onclick="connectTo('shell')"
-          class="pl-4 opacity-60 hover:opacity-100 transition-all duration-200 py-3 cursor-pointer hover:bg-[#2A2A2A] rounded-r-lg"
-        >
-          <div class="flex flex-col gap-1">
-            <div class="flex items-center justify-between pr-4">
-              <span class="text-[10px] font-mono uppercase text-on-surface-variant">Shell</span>
-            </div>
-            <span class="text-sm font-medium text-[#E5E2E1] flex items-center gap-1">
-              <span class="material-symbols-outlined text-[14px]">terminal</span>
-              Interactive Shell
-            </span>
-          </div>
+        <!-- Dynamic Shell Tabs -->
+        <div id="shell-tabs-dynamic"></div>
+
+        <!-- Task Queue section -->
+        <div class="px-4 pt-4 pb-2 mb-1">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant opacity-60">Task Queue</span>
         </div>
 
         <!-- Dynamic Task List -->
@@ -328,12 +326,12 @@
 
       // ── Terminal input (shell only) ──────────────────────────────────────
       term.onData((data) => {
-        if (ws?.readyState === WebSocket.OPEN && currentSession === 'shell') {
+        if (ws?.readyState === WebSocket.OPEN && currentSession?.startsWith('shell')) {
           ws.send(new TextEncoder().encode(data));
         }
       });
       term.onResize(({ cols, rows }) => {
-        if (ws?.readyState === WebSocket.OPEN && currentSession === 'shell') {
+        if (ws?.readyState === WebSocket.OPEN && currentSession?.startsWith('shell')) {
           ws.send(JSON.stringify({ type: 'resize', cols, rows }));
         }
       });
@@ -349,7 +347,7 @@
         ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
         ws.binaryType = 'arraybuffer';
         ws.onopen = () => {
-          if (sessionId === 'shell') {
+          if (sessionId.startsWith('shell')) {
             ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
           }
         };
@@ -362,9 +360,10 @@
       function updateHeader(sessionId) {
         const cwdEl    = document.getElementById('header-cwd');
         const promptEl = document.getElementById('header-prompt');
-        if (sessionId === 'shell') {
+        if (sessionId?.startsWith('shell')) {
+          const shell = shellSessions.find(s => s.id === sessionId);
           cwdEl.textContent    = '~';
-          promptEl.textContent = 'Interactive Shell';
+          promptEl.textContent = shell ? shell.label : 'Interactive Shell';
           return;
         }
         const task = tasksList.find(t => t.session_id === sessionId);
@@ -376,14 +375,7 @@
 
       // ── Sidebar active state ──────────────────────────────────────────────
       function updateActiveTab(sessionId) {
-        const shellTab = document.getElementById('tab-shell');
-        if (sessionId === 'shell') {
-          shellTab.classList.add('border-l-2', 'border-[#45DFA4]');
-          shellTab.classList.remove('opacity-60', 'hover:opacity-100');
-        } else {
-          shellTab.classList.remove('border-l-2', 'border-[#45DFA4]');
-          shellTab.classList.add('opacity-60', 'hover:opacity-100');
-        }
+        renderShellTabs();
         renderTaskList();
       }
 
@@ -453,10 +445,73 @@
         });
       }
 
+      // ── Multi-shell management ────────────────────────────────────────────
+      let shellSessions = [];
+      let shellCounter  = 0;
+
+      function addShell() {
+        shellCounter++;
+        const id    = `shell-${shellCounter}`;
+        const label = `Shell ${shellCounter}`;
+        shellSessions.push({ id, label });
+        renderShellTabs();
+        connectTo(id);
+      }
+
+      async function removeShell(id, e) {
+        e.stopPropagation();
+        await fetch(`/api/shells/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        shellSessions = shellSessions.filter(s => s.id !== id);
+        if (currentSession === id) {
+          const fallback = shellSessions[shellSessions.length - 1];
+          if (fallback) {
+            connectTo(fallback.id);
+          } else {
+            addShell();  // 마지막 탭 닫으면 새 탭 자동 생성
+            return;
+          }
+        }
+        renderShellTabs();
+      }
+
+      function renderShellTabs() {
+        const container = document.getElementById('shell-tabs-dynamic');
+        container.innerHTML = '';
+        shellSessions.forEach(shell => {
+          const isSelected = currentSession === shell.id;
+          const div = document.createElement('div');
+          div.dataset.session = shell.id;
+          div.className = [
+            isSelected
+              ? 'pl-4 border-l-2 border-[#45DFA4]'
+              : 'pl-4 opacity-60 hover:opacity-100',
+            'transition-all duration-200 py-2.5 cursor-pointer hover:bg-[#2A2A2A] rounded-r-lg mb-1 flex items-center justify-between pr-3'
+          ].join(' ');
+          div.onclick = () => connectTo(shell.id);
+          div.innerHTML = `
+            <span class="text-sm font-medium text-[#E5E2E1] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] ${isSelected ? 'text-secondary' : 'text-on-surface-variant'}">terminal</span>
+              ${esc(shell.label)}
+            </span>
+            <button
+              class="text-on-surface-variant hover:text-error transition-colors opacity-0 group-hover:opacity-100"
+              onclick="removeShell('${shell.id}', event)"
+              title="Close shell"
+              style="opacity: ${isSelected ? '0.6' : '0'};"
+              onmouseenter="this.style.opacity='1'"
+              onmouseleave="this.style.opacity='${isSelected ? '0.6' : '0'}'"
+            >
+              <span class="material-symbols-outlined text-[14px]">close</span>
+            </button>
+          `;
+          container.appendChild(div);
+        });
+      }
+
       // ── Stop current task / send Ctrl+C ──────────────────────────────────
       async function stopCurrent() {
         if (!currentSession) return;
-        if (currentSession === 'shell') {
+        if (currentSession.startsWith('shell')) {
           // Send Ctrl+C to shell
           if (ws?.readyState === WebSocket.OPEN) {
             ws.send(new TextEncoder().encode('\x03'));
@@ -592,7 +647,7 @@
       });
 
       // ── Init ──────────────────────────────────────────────────────────────
-      connectTo('shell');
+      addShell();
     </script>
   </body>
 </html>
