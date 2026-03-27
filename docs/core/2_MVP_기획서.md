@@ -1,4 +1,4 @@
-# AI Company - 기획서
+# Ghost Developer - 기획서
 
 ---
 

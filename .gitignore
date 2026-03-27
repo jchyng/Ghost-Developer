@@ -20,8 +20,9 @@ env/
 # 워커 작업 디렉토리 (런타임 생성물)
 workspaces/
 
-# Playwright 생성 스크린샷 (루트 한정)
+# Playwright
 /screenshots/
+.playwright-mcp/
 
 # IDE
 .vscode/
