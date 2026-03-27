@@ -41,6 +41,13 @@
     /* msg-user는 JS에서 인라인 스타일로 대체됨 */
     .tab-active { background: #0E0E0E; border-top: 1px solid; border-left: 1px solid rgba(65,71,81,0.2); border-right: 1px solid rgba(65,71,81,0.2); }
     .tab-inactive { background: transparent; color: #C1C7D3; }
+    @keyframes typing-bounce {
+      0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-4px); }
+    }
+    .typing-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #45DFA4; animation: typing-bounce 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
 
@@ -546,6 +553,27 @@ function setRunning(val) {
   isRunning = val;
   document.getElementById('interrupt-btn').style.display = val ? 'flex' : 'none';
   document.getElementById('msg-input').disabled = val;
+
+  if (val) {
+    document.getElementById('empty-state')?.remove();
+    const inner = getMsgContainer();
+    const wrap = document.createElement('div');
+    wrap.id = 'typing-indicator';
+    wrap.className = 'mt-0.5 mb-2';
+    wrap.innerHTML = `
+      <div class="flex items-center gap-2 mb-1.5">
+        <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
+                    bg-surface-lowest border border-[rgba(65,71,81,0.3)]">${SPARKLE_SVG}</div>
+        <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">AI Agent</span>
+      </div>
+      <div class="pl-8 flex items-center gap-1.5 h-6">
+        <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+      </div>`;
+    inner.appendChild(wrap);
+    scrollChat();
+  } else {
+    document.getElementById('typing-indicator')?.remove();
+  }
 }
 
 async function cancelChat() {
