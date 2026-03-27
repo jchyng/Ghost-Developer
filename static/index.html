@@ -490,7 +490,7 @@ function addMessage(role, content, scroll = true) {
                   whitespace-pre-wrap break-words rounded-lg
                   bg-[#232323] border border-[rgba(65,71,81,0.22)]">${esc(content)}</div>`;
   } else {
-    wrap.className = 'mt-0.5 mb-2';
+    wrap.className = 'mt-0.5 mb-2 group/msg';
     wrap.innerHTML = `
       <div class="flex items-center gap-2 mb-1.5">
         <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
@@ -498,8 +498,24 @@ function addMessage(role, content, scroll = true) {
           ${SPARKLE_SVG}
         </div>
         <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">AI Agent</span>
+        <button class="copy-btn ml-1 p-1 rounded opacity-0 group-hover/msg:opacity-100 transition-opacity
+                       text-on-surface-variant hover:text-on-surface hover:bg-surface-high" title="복사">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+          </svg>
+        </button>
       </div>
       <div class="pl-8 text-sm leading-[1.75] text-[#D4D1CF]/90 whitespace-pre-wrap break-words">${renderMarkdownLite(content)}</div>`;
+    wrap.querySelector('.copy-btn').onclick = () => {
+      navigator.clipboard.writeText(content).then(() => {
+        const btn = wrap.querySelector('.copy-btn');
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        setTimeout(() => {
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+        }, 1500);
+      });
+    };
   }
   inner.appendChild(wrap);
   if (scroll) scrollChat();
