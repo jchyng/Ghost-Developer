@@ -71,7 +71,7 @@
   <!-- New Chat -->
   <div class="px-3 pb-3">
     <button onclick="openNewChatModal()"
-      class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium
+      class="w-full flex items-center justify-start gap-2 py-2 px-4 rounded-md text-sm font-medium
              border border-[rgba(65,71,81,0.2)] hover:bg-surface-high transition-colors">
       <i data-lucide="plus" class="w-4 h-4"></i> New Chat
     </button>
@@ -98,11 +98,13 @@
   <header class="h-14 flex items-center justify-between px-6 flex-shrink-0">
     <div class="flex items-center gap-2 text-sm text-on-surface-variant">
       <i data-lucide="home" class="w-4 h-4"></i>
-      <i data-lucide="chevron-right" class="w-3 h-3"></i>
-      <span id="header-title" class="text-on-surface text-sm truncate max-w-[320px]">—</span>
-      <span id="header-cwd-wrap" class="hidden items-center gap-1" style="display:none">
+      <span id="header-nav-path" class="flex items-center gap-2" style="display:none">
         <i data-lucide="chevron-right" class="w-3 h-3"></i>
-        <span id="header-cwd" class="font-mono text-xs text-on-surface-variant/60 truncate max-w-[200px]"></span>
+        <span id="header-title" class="text-on-surface text-sm truncate max-w-[320px]"></span>
+        <span id="header-cwd-wrap" class="items-center gap-1" style="display:none">
+          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <span id="header-cwd" class="font-mono text-xs text-on-surface-variant/60 truncate max-w-[200px]"></span>
+        </span>
       </span>
     </div>
     <div class="flex items-center gap-2">
@@ -127,18 +129,41 @@
         <!-- Empty state / Welcome -->
         <div id="empty-state" class="flex flex-col items-center justify-center gap-6 select-none" style="min-height:70vh">
           <div class="flex flex-col items-center gap-3">
-            <img src="/logo.png" class="w-20 h-20 object-contain mb-1" alt="Ghost Developer" />
+            <div class="relative flex items-center justify-center mb-1">
+              <div class="absolute w-52 h-52 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(69,223,164,0.11) 0%, rgba(69,223,164,0.04) 45%, transparent 70%);"></div>
+              <img src="/logo.png" class="w-20 h-20 object-contain relative z-10" alt="Ghost Developer" />
+            </div>
             <h1 class="text-[1.35rem] font-semibold tracking-tight text-on-surface/80">Ghost Developer</h1>
             <p class="text-[0.8rem] text-on-surface-variant/45 tracking-wide">작업 폴더를 지정하고 나를 대신해 개발을 시작하세요.</p>
           </div>
-          <button onclick="openNewChatModal()"
-            class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#0E0E0E]
-                   bg-gradient-to-br from-primary to-primary-container
-                   hover:opacity-90 active:scale-95 transition-all duration-150 shadow-[0_4px_20px_rgba(96,165,250,0.2)]">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            새 채팅 시작하기
-          </button>
-          <p class="text-[0.6rem] font-mono text-on-surface-variant/20 tracking-widest">CTRL+K</p>
+          <div class="flex flex-col items-center gap-2">
+            <button onclick="openNewChatModal()"
+              class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#0E0E0E]
+                     bg-gradient-to-br from-primary to-primary-container
+                     hover:opacity-90 active:scale-95 transition-all duration-150 shadow-[0_4px_20px_rgba(96,165,250,0.2)]">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              새 채팅 시작하기
+            </button>
+            <span class="text-[0.6rem] font-mono text-on-surface-variant/30 tracking-widest">CTRL+K — 새 채팅</span>
+          </div>
+          <!-- Feature hint cards -->
+          <div class="flex items-start gap-3 mt-2">
+            <div class="flex flex-col gap-1.5 bg-surface-low rounded-lg px-4 py-3 w-44 hover:bg-surface-high transition-colors duration-200 cursor-default">
+              <i data-lucide="folder-open" class="w-4 h-4 text-secondary/60"></i>
+              <span class="text-xs font-medium text-on-surface/70">폴더 지정</span>
+              <span class="text-[0.65rem] text-on-surface-variant/40 leading-relaxed">작업 디렉토리를 설정해 Ghost가 코드를 이해합니다</span>
+            </div>
+            <div class="flex flex-col gap-1.5 bg-surface-low rounded-lg px-4 py-3 w-44 hover:bg-surface-high transition-colors duration-200 cursor-default">
+              <i data-lucide="code-2" class="w-4 h-4 text-secondary/60"></i>
+              <span class="text-xs font-medium text-on-surface/70">자동 개발</span>
+              <span class="text-[0.65rem] text-on-surface-variant/40 leading-relaxed">요청을 입력하면 파일을 직접 수정하고 실행합니다</span>
+            </div>
+            <div class="flex flex-col gap-1.5 bg-surface-low rounded-lg px-4 py-3 w-44 hover:bg-surface-high transition-colors duration-200 cursor-default">
+              <i data-lucide="terminal" class="w-4 h-4 text-secondary/60"></i>
+              <span class="text-xs font-medium text-on-surface/70">터미널 통합</span>
+              <span class="text-[0.65rem] text-on-surface-variant/40 leading-relaxed">명령어 실행 결과를 실시간으로 확인할 수 있습니다</span>
+            </div>
+          </div>
         </div>
       </div>
       <!-- Scroll-to-bottom button -->
@@ -294,7 +319,12 @@ function renderChatList(chats) {
   const nav = document.getElementById('chat-list');
   nav.innerHTML = '';
   if (chats.length === 0) {
-    nav.innerHTML = '<div class="px-4 py-2 text-xs text-on-surface-variant/50">채팅 없음</div>';
+    nav.innerHTML = `<div class="flex flex-col items-center gap-2 px-4 py-6 text-center">
+      <i data-lucide="message-square-dashed" class="w-5 h-5 text-on-surface-variant/25"></i>
+      <span class="text-xs text-on-surface-variant/40">아직 채팅이 없어요</span>
+      <button onclick="openNewChatModal()" class="text-[0.65rem] text-secondary/50 hover:text-secondary transition-colors font-mono tracking-wide mt-0.5">+ 새 채팅 시작하기</button>
+    </div>`;
+    lucide.createIcons();
     return;
   }
   chats.forEach(chat => {
@@ -429,8 +459,9 @@ function handleChatEvent(e) {
 
 function updateHeader(chat) {
   const chatId = chat?.id || activeChatId;
-  const headerTitle = chat?.title && chat.title !== chat?.cwd ? chat.title : (chat?.cwd || chatId || '—');
+  const headerTitle = chat?.title && chat.title !== chat?.cwd ? chat.title : (chat?.cwd || chatId || '');
   document.getElementById('header-title').textContent = headerTitle;
+  document.getElementById('header-nav-path').style.display = headerTitle ? 'flex' : 'none';
   const cwdWrap = document.getElementById('header-cwd-wrap');
   if (chat?.cwd && chat.title !== chat.cwd) {
     document.getElementById('header-cwd').textContent = chat.cwd;
@@ -458,7 +489,8 @@ async function confirmDeleteChat(chatId, title) {
       activeChatId = null;
       clearMessages();
       if (chatWs) { chatWs.onclose = null; chatWs.close(); chatWs = null; }
-      document.getElementById('header-title').textContent = '—';
+      document.getElementById('header-title').textContent = '';
+      document.getElementById('header-nav-path').style.display = 'none';
       document.getElementById('header-cwd-wrap').style.display = 'none';
       document.getElementById('input-bar').style.display = 'none';
     }
