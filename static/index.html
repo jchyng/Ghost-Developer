@@ -159,11 +159,14 @@
           class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-[rgba(193,199,211,0.35)]
                  resize-none outline-none min-h-[24px] max-h-[160px] leading-relaxed self-center"
           onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
-        <button onclick="sendMessage()"
-          class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E]
-                 hover:opacity-85 active:scale-95 transition-all duration-150 flex-shrink-0 flex items-center justify-center">
-          <i data-lucide="arrow-up" class="w-4 h-4"></i>
-        </button>
+        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <button onclick="sendMessage()"
+            class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-container text-[#0E0E0E]
+                   hover:opacity-85 active:scale-95 transition-all duration-150 flex items-center justify-center">
+            <i data-lucide="arrow-up" class="w-4 h-4"></i>
+          </button>
+          <span class="text-[0.55rem] font-mono text-on-surface-variant/25 whitespace-nowrap">Shift+↵ 줄바꿈</span>
+        </div>
       </div>
     </div>
   </div>
