@@ -7,6 +7,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
@@ -48,6 +50,10 @@
     .typing-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #45DFA4; animation: typing-bounce 1.2s infinite; }
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes sidebar-pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+    .running-dot { width:6px;height:6px;border-radius:50%;background:#45DFA4;flex-shrink:0;animation:sidebar-pulse 1.4s ease-in-out infinite; }
+    .hljs-pre { background:#0E0E0E; border:1px solid rgba(65,71,81,0.2); border-radius:8px; padding:12px 14px; margin:8px 0; overflow-x:auto; font-size:12px; line-height:1.6; }
+    .hljs-pre code { font-family:'JetBrains Mono',monospace; background:transparent; padding:0; }
   </style>
 </head>
 
@@ -233,6 +239,7 @@ let activeChatId = null;
 let chatWs = null;
 let isRunning = false;
 let termVisible = false;
+let activeChatData = null;  // 현재 열린 채팅의 전체 데이터
 
 // Terminal tabs: [{id, label, kind('log'|'pty'), term, fitAddon, ws}]
 let tabs = [];
@@ -320,17 +327,10 @@ function selectChat(chatId, chat) {
   activeChatId = chatId;
   highlightChat(chatId);
 
+  activeChatData = chat || null;
+
   // Update header
-  const headerTitle = chat?.title && chat.title !== chat?.cwd ? chat.title : (chat?.cwd || chatId);
-  document.getElementById('header-title').textContent = headerTitle;
-  const cwdEl = document.getElementById('header-cwd');
-  const cwdWrap = document.getElementById('header-cwd-wrap');
-  if (chat?.cwd && chat.title !== chat.cwd) {
-    cwdEl.textContent = chat.cwd;
-    cwdWrap.style.display = 'flex';
-  } else {
-    cwdWrap.style.display = 'none';
-  }
+  updateHeader(chat);
 
   // Reconnect WebSocket — onclose 제거 후 닫아야 재연결 루프 방지
   if (chatWs) {
@@ -406,9 +406,25 @@ function handleChatEvent(e) {
     case 'title_update': {
       const el = document.querySelector(`.chat-item[data-id="${e.chat_id}"] .chat-title`);
       if (el && el.tagName !== 'INPUT') el.textContent = e.title;
-      if (e.chat_id === activeChatId) document.getElementById('header-title').textContent = e.title;
+      if (e.chat_id === activeChatId) {
+        if (activeChatData) activeChatData.title = e.title;
+        updateHeader(activeChatData);
+      }
       break;
     }
+  }
+}
+
+function updateHeader(chat) {
+  const chatId = chat?.id || activeChatId;
+  const headerTitle = chat?.title && chat.title !== chat?.cwd ? chat.title : (chat?.cwd || chatId || '—');
+  document.getElementById('header-title').textContent = headerTitle;
+  const cwdWrap = document.getElementById('header-cwd-wrap');
+  if (chat?.cwd && chat.title !== chat.cwd) {
+    document.getElementById('header-cwd').textContent = chat.cwd;
+    cwdWrap.style.display = 'flex';
+  } else {
+    cwdWrap.style.display = 'none';
   }
 }
 
@@ -484,23 +500,73 @@ function clearMessages() {
   document.getElementById('scroll-btn').style.display = 'none';
 }
 
+const EXAMPLE_PROMPTS = [
+  '현재 디렉토리 파일 구조를 보여줘',
+  'git 상태 확인하고 변경된 파일 요약해줘',
+  'README.md 파일을 작성해줘',
+];
+
+function showEmptyPrompts() {
+  const inner = getMsgContainer();
+  const div = document.createElement('div');
+  div.id = 'empty-prompts';
+  div.className = 'flex flex-col items-center justify-center gap-4 py-28 select-none';
+  div.innerHTML = `
+    <i data-lucide="sparkles" class="w-9 h-9 text-on-surface-variant opacity-15"></i>
+    <p class="text-xs text-on-surface-variant/40 tracking-wide">무엇을 도와드릴까요?</p>
+    <div class="flex flex-col gap-2 w-full max-w-sm">
+      ${EXAMPLE_PROMPTS.map(p => `
+        <button onclick="useExamplePrompt(this)" data-prompt="${esc(p)}"
+          class="text-left px-4 py-2.5 rounded-lg border border-[rgba(65,71,81,0.2)] text-sm text-on-surface-variant
+                 hover:border-secondary/30 hover:text-on-surface hover:bg-surface-low/40 transition-all">
+          ${esc(p)}
+        </button>`).join('')}
+    </div>`;
+  inner.appendChild(div);
+  lucide.createIcons();
+}
+
+function useExamplePrompt(btn) {
+  const input = document.getElementById('msg-input');
+  input.value = btn.dataset.prompt;
+  autoResize(input);
+  input.focus();
+}
+
 function renderMessages(messages) {
   clearMessages();
-  messages.forEach(m => addMessage(m.role, m.content, false));
+  if (messages.length === 0) { showEmptyPrompts(); return; }
+  let lastDateStr = null;
+  messages.forEach(m => {
+    const dateStr = m.created_at ? new Date(m.created_at * 1000).toLocaleDateString('ko-KR') : null;
+    if (dateStr && dateStr !== lastDateStr) {
+      lastDateStr = dateStr;
+      const sep = document.createElement('div');
+      sep.className = 'flex items-center gap-3 my-3';
+      sep.innerHTML = `<div class="flex-1 h-px bg-[rgba(65,71,81,0.15)]"></div>
+        <span class="text-[0.6rem] font-mono text-on-surface-variant/30 tracking-widest">${dateStr}</span>
+        <div class="flex-1 h-px bg-[rgba(65,71,81,0.15)]"></div>`;
+      getMsgContainer().appendChild(sep);
+    }
+    addMessage(m.role, m.content, false, m.created_at);
+  });
   scrollChat();
 }
 
 const SPARKLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`;
 
-function addMessage(role, content, scroll = true) {
+function addMessage(role, content, scroll = true, createdAt = null) {
   document.getElementById('empty-state')?.remove();
+  document.getElementById('empty-prompts')?.remove();
   const inner = getMsgContainer();
+  const timeStr = createdAt ? new Date(createdAt * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
 
   const wrap = document.createElement('div');
 
   if (role === 'user') {
-    wrap.className = 'flex justify-end mt-2 mb-0.5';
+    wrap.className = 'flex justify-end items-end gap-2 mt-2 mb-0.5';
     wrap.innerHTML = `
+      ${timeStr ? `<span class="text-[0.6rem] text-on-surface-variant/50 flex-shrink-0 mb-0.5">${timeStr}</span>` : ''}
       <div class="max-w-[75%] px-3 py-1.5 text-sm leading-normal text-[#E5E2E1]
                   whitespace-pre-wrap break-words rounded-lg
                   bg-[#232323] border border-[rgba(65,71,81,0.22)]">${esc(content)}</div>`;
@@ -513,6 +579,7 @@ function addMessage(role, content, scroll = true) {
           ${SPARKLE_SVG}
         </div>
         <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">AI Agent</span>
+        ${timeStr ? `<span class="text-[0.6rem] text-on-surface-variant/40">${timeStr}</span>` : ''}
         <button class="copy-btn ml-1 p-1 rounded opacity-0 group-hover/msg:opacity-100 transition-opacity
                        text-on-surface-variant hover:text-on-surface hover:bg-surface-high" title="복사">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -612,6 +679,17 @@ function setRunning(val) {
   isRunning = val;
   document.getElementById('interrupt-btn').style.display = val ? 'flex' : 'none';
   document.getElementById('msg-input').disabled = val;
+
+  // 사이드바 실행 중 인디케이터
+  const sidebarItem = activeChatId ? document.querySelector(`.chat-item[data-id="${activeChatId}"]`) : null;
+  if (sidebarItem) {
+    sidebarItem.querySelector('.running-dot')?.remove();
+    if (val) {
+      const dot = document.createElement('span');
+      dot.className = 'running-dot';
+      sidebarItem.querySelector('.chat-actions')?.before(dot);
+    }
+  }
 
   if (val) {
     document.getElementById('empty-state')?.remove();
@@ -811,8 +889,10 @@ function openNewChatModal() {
     const lastCwd = localStorage.getItem('lastCwd');
     if (lastCwd) {
       input.value = lastCwd;
+      // 포커스 전에 미리 fetchDir → openBrowserAuto 시 즉시 렌더링
+      const { basePath } = parseCwdInput(lastCwd);
+      await fetchDir(basePath || lastCwd);
     } else {
-      // 서버에서 OS별 홈 디렉토리를 받아 기본값으로 설정
       await fetchDir('');
       input.value = browseState.path;
     }
@@ -976,12 +1056,29 @@ function esc(s) {
 
 // Very minimal markdown-like rendering (bold, code)
 function renderMarkdownLite(text) {
-  return esc(text)
-    .replace(/`([^`]+)`/g, '<code class="font-mono text-xs bg-surface-high px-1 py-0.5 rounded text-primary">$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/^(\d+\.\s)/gm, '<span class="text-on-surface-variant">$1</span>')
-    .replace(/^[-•]\s(.+)/gm, '  <span class="text-on-surface-variant">•</span> $1')
-    .replace(/\n/g, '<br>');
+  // 펜스 코드블록(```lang\n...\n```)을 먼저 분리해서 처리
+  const parts = text.split(/(```[\w]*\n[\s\S]*?```)/g);
+  return parts.map(part => {
+    const codeMatch = part.match(/^```(\w*)\n([\s\S]*)```$/);
+    if (codeMatch) {
+      const lang = codeMatch[1];
+      const code = codeMatch[2].trimEnd();
+      let highlighted;
+      try {
+        highlighted = lang && window.hljs
+          ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
+          : esc(code);
+      } catch (_) { highlighted = esc(code); }
+      return `<pre class="hljs-pre"><code>${highlighted}</code></pre>`;
+    }
+    // 인라인 마크다운
+    return esc(part)
+      .replace(/`([^`\n]+)`/g, '<code class="font-mono text-xs bg-surface-high px-1 py-0.5 rounded text-primary">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/^(\d+\.\s)/gm, '<span class="text-on-surface-variant">$1</span>')
+      .replace(/^[-•]\s(.+)/gm, '  <span class="text-on-surface-variant">•</span> $1')
+      .replace(/\n/g, '<br>');
+  }).join('');
 }
 </script>
 </body>
