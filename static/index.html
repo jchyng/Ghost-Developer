@@ -550,7 +550,8 @@ function renderMessages(messages) {
     }
     addMessage(m.role, m.content, false, m.created_at);
   });
-  scrollChat();
+  // 히스토리 로드 시에는 항상 맨 아래로 — rAF로 레이아웃 계산 후 실행
+  requestAnimationFrame(scrollToBottom);
 }
 
 const SPARKLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`;
