@@ -124,10 +124,23 @@
     <!-- Chat Messages -->
     <div id="chat-area" class="flex-1 overflow-y-auto py-2 select-text cursor-text relative">
       <div id="chat-inner" class="max-w-[900px] mx-auto px-4 flex flex-col gap-0">
-        <!-- Empty state -->
-        <div id="empty-state" class="flex flex-col items-center justify-center text-on-surface-variant gap-3 py-32">
-          <i data-lucide="sparkles" class="w-10 h-10 opacity-20"></i>
-          <p class="text-sm opacity-40">채팅을 선택하거나 새 채팅을 시작하세요.</p>
+        <!-- Empty state / Welcome -->
+        <div id="empty-state" class="flex flex-col items-center justify-center gap-6 select-none" style="min-height:70vh">
+          <div class="flex flex-col items-center gap-3">
+            <div class="w-14 h-14 rounded-2xl bg-surface-low border border-[rgba(65,71,81,0.18)] flex items-center justify-center mb-1">
+              <i data-lucide="sparkles" class="w-7 h-7 text-secondary opacity-60"></i>
+            </div>
+            <h1 class="text-[1.35rem] font-semibold tracking-tight text-on-surface/80">AI Company</h1>
+            <p class="text-[0.8rem] text-on-surface-variant/45 tracking-wide">작업 폴더를 지정하고 AI 에이전트를 시작하세요.</p>
+          </div>
+          <button onclick="openNewChatModal()"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#0E0E0E]
+                   bg-gradient-to-br from-primary to-primary-container
+                   hover:opacity-90 active:scale-95 transition-all duration-150 shadow-[0_4px_20px_rgba(96,165,250,0.2)]">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            새 채팅 시작하기
+          </button>
+          <p class="text-[0.6rem] font-mono text-on-surface-variant/20 tracking-widest">CTRL+K</p>
         </div>
       </div>
       <!-- Scroll-to-bottom button -->
@@ -156,7 +169,7 @@
   </div><!-- /chat+terminal -->
 
   <!-- Input Bar -->
-  <div class="px-8 pt-3 pb-5 flex-shrink-0">
+  <div id="input-bar" class="px-8 pt-3 pb-5 flex-shrink-0" style="display:none">
     <div class="max-w-[900px] mx-auto">
       <div id="input-wrap"
         class="flex items-end gap-3 bg-surface-low rounded-2xl border border-[rgba(65,71,81,0.22)] px-4 py-3
@@ -328,6 +341,7 @@ function selectChat(chatId, chat) {
   highlightChat(chatId);
 
   activeChatData = chat || null;
+  document.getElementById('input-bar').style.display = '';
 
   // Update header
   updateHeader(chat);
@@ -448,6 +462,7 @@ async function confirmDeleteChat(chatId, title) {
       if (chatWs) { chatWs.onclose = null; chatWs.close(); chatWs = null; }
       document.getElementById('header-title').textContent = '—';
       document.getElementById('header-cwd-wrap').style.display = 'none';
+      document.getElementById('input-bar').style.display = 'none';
     }
     await loadChats();
   };
