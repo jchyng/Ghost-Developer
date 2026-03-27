@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Company</title>
+  <title>Ghost Developer</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
@@ -65,7 +65,7 @@
   <!-- Logo -->
   <div class="px-4 py-4 flex items-center gap-2">
     <i data-lucide="sparkles" class="w-5 h-5 text-secondary flex-shrink-0"></i>
-    <span class="font-semibold text-base tracking-tight">AI Company</span>
+    <span class="font-semibold text-base tracking-tight">Ghost Developer</span>
   </div>
 
   <!-- New Chat -->
@@ -130,8 +130,8 @@
             <div class="w-14 h-14 rounded-2xl bg-surface-low border border-[rgba(65,71,81,0.18)] flex items-center justify-center mb-1">
               <i data-lucide="sparkles" class="w-7 h-7 text-secondary opacity-60"></i>
             </div>
-            <h1 class="text-[1.35rem] font-semibold tracking-tight text-on-surface/80">AI Company</h1>
-            <p class="text-[0.8rem] text-on-surface-variant/45 tracking-wide">작업 폴더를 지정하고 AI 에이전트를 시작하세요.</p>
+            <h1 class="text-[1.35rem] font-semibold tracking-tight text-on-surface/80">Ghost Developer</h1>
+            <p class="text-[0.8rem] text-on-surface-variant/45 tracking-wide">작업 폴더를 지정하고 나를 대신해 개발을 시작하세요.</p>
           </div>
           <button onclick="openNewChatModal()"
             class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-[#0E0E0E]
@@ -174,7 +174,7 @@
       <div id="input-wrap"
         class="flex items-end gap-3 bg-surface-low rounded-2xl border border-[rgba(65,71,81,0.22)] px-4 py-3
                focus-within:border-[rgba(65,71,81,0.5)] transition-all duration-200">
-        <textarea id="msg-input" rows="1" placeholder="Ask the AI agent to do something..."
+        <textarea id="msg-input" rows="1" placeholder="Ghost에게 개발을 맡겨보세요..."
           class="flex-1 bg-transparent text-sm text-on-surface placeholder:text-[rgba(193,199,211,0.35)]
                  resize-none outline-none min-h-[24px] max-h-[160px] leading-relaxed self-center"
           onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
@@ -594,7 +594,7 @@ function addMessage(role, content, scroll = true, createdAt = null) {
                     bg-surface-lowest border border-[rgba(65,71,81,0.3)]">
           ${SPARKLE_SVG}
         </div>
-        <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">AI Agent</span>
+        <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">Ghost Dev</span>
         ${timeStr ? `<span class="text-[0.6rem] text-on-surface-variant/40">${timeStr}</span>` : ''}
         <button class="copy-btn ml-1 p-1 rounded opacity-0 group-hover/msg:opacity-100 transition-opacity
                        text-on-surface-variant hover:text-on-surface hover:bg-surface-high" title="복사">
@@ -718,7 +718,7 @@ function setRunning(val) {
       <div class="flex items-center gap-2 mb-1.5">
         <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
                     bg-surface-lowest border border-[rgba(65,71,81,0.3)]">${SPARKLE_SVG}</div>
-        <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">AI Agent</span>
+        <span class="text-[0.72rem] font-medium tracking-wide text-[#E5E2E1]/45 uppercase" style="letter-spacing:0.07em">Ghost Dev</span>
       </div>
       <div class="pl-8 flex items-center gap-1.5 h-6">
         <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
