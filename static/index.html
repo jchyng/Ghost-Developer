@@ -171,7 +171,7 @@
                    hover:opacity-85 active:scale-95 transition-all duration-150 flex items-center justify-center">
             <i data-lucide="arrow-up" class="w-4 h-4"></i>
           </button>
-          <span class="text-[0.55rem] font-mono text-on-surface-variant/25 whitespace-nowrap">Shift+↵ 줄바꿈</span>
+          <span class="text-[0.55rem] font-mono text-on-surface-variant/25 whitespace-nowrap">Ctrl+↵ 전송</span>
         </div>
       </div>
     </div>
@@ -644,12 +644,13 @@ async function sendMessage() {
   const content = input.value.trim();
   if (!content || !activeChatId || isRunning) return;
 
-  // 즉시 잠금 — 버튼 중복 클릭 / Enter 동시 입력 방지
-  setRunning(true);
+  // 즉시 잠금 — 버튼 중복 클릭 / Ctrl+Enter 동시 입력 방지
+  isRunning = true;
   input.value = '';
   autoResize(input);
 
   addMessage('user', content);
+  setRunning(true);
 
   // Show terminal panel automatically
   if (!termVisible) showTerminal();
@@ -663,7 +664,7 @@ async function sendMessage() {
 }
 
 function handleInputKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === 'Enter' && e.ctrlKey) {
     e.preventDefault();
     sendMessage();
   }
