@@ -184,6 +184,13 @@
       <!-- Tabs -->
       <div id="term-tabs" class="flex items-center px-2 gap-1 bg-surface-lowest flex-shrink-0">
         <!-- tabs rendered dynamically -->
+        <div class="ml-auto pr-1" id="log-copy-btn-wrap" style="display:none">
+          <button id="log-copy-btn" onclick="copyLogContent()" title="로그 전체 복사"
+            class="p-1.5 text-on-surface-variant hover:text-on-surface transition-colors rounded">
+            <svg id="log-copy-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <svg id="log-check-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#45DFA4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
       </div>
       <!-- Term Container -->
       <div id="term-container" class="flex-1 overflow-hidden px-2 pb-2"></div>
@@ -278,6 +285,7 @@ let chatWs = null;
 let isRunning = false;
 let termVisible = false;
 let activeChatData = null;  // 현재 열린 채팅의 전체 데이터
+const logBuffers = {};      // chatId → string[] (채팅별 Agent Log 버퍼)
 
 // Terminal tabs: [{id, label, kind('log'|'pty'), term, fitAddon, ws}]
 let tabs = [];
@@ -388,8 +396,9 @@ function selectChat(chatId, chat) {
   // Clear chat area (keep empty state hidden)
   clearMessages();
 
-  // Ensure log tab exists
+  // Ensure log tab exists, then restore per-chat log
   ensureLogTab();
+  restoreLogTab(chatId);
 }
 
 function connectChatWs(chatId) {
@@ -754,7 +763,10 @@ function ensureLogTab() {
 
 function renderTabs() {
   const bar = document.getElementById('term-tabs');
-  bar.innerHTML = '';
+  // Remove all children except the copy button wrapper
+  Array.from(bar.children).forEach(el => {
+    if (el.id !== 'log-copy-btn-wrap') el.remove();
+  });
   tabs.forEach(tab => {
     const isActive = tab.id === activeTabId;
     const color = tab.color || '#C1C7D3';
@@ -764,14 +776,36 @@ function renderTabs() {
     const dot = `<span style="font-size:8px; color:${color}; ${isActive ? `filter:drop-shadow(0 0 3px ${color})` : 'opacity:0.35'}">●</span>`;
     btn.innerHTML = `${dot}${esc(tab.label)}`;
     btn.onclick = () => activateTab(tab.id);
-    bar.appendChild(btn);
+    bar.insertBefore(btn, document.getElementById('log-copy-btn-wrap'));
   });
   // [+] button
   const plus = document.createElement('button');
   plus.className = 'p-1.5 text-on-surface-variant hover:text-on-surface transition-colors ml-1';
   plus.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
   plus.onclick = addPtyTab;
-  bar.appendChild(plus);
+  bar.insertBefore(plus, document.getElementById('log-copy-btn-wrap'));
+
+  // Show copy button only when log tab is active
+  const wrap = document.getElementById('log-copy-btn-wrap');
+  if (wrap) wrap.style.display = activeTabId === 'log' ? 'flex' : 'none';
+}
+
+function copyLogContent() {
+  const tab = tabs.find(t => t.kind === 'log');
+  if (!tab?.term) return;
+  tab.term.selectAll();
+  const text = tab.term.getSelection();
+  tab.term.clearSelection();
+  navigator.clipboard.writeText(text).then(() => {
+    const copyIcon = document.getElementById('log-copy-icon');
+    const checkIcon = document.getElementById('log-check-icon');
+    copyIcon.style.display = 'none';
+    checkIcon.style.display = 'block';
+    setTimeout(() => {
+      copyIcon.style.display = 'block';
+      checkIcon.style.display = 'none';
+    }, 1500);
+  });
 }
 
 function activateTab(tabId) {
@@ -813,7 +847,12 @@ function activateTab(tabId) {
 
     if (tab.kind === 'pty') connectPtyWs(tab);
     if (tab.kind === 'log') {
-      term.write('\x1b[90m[Agent Log ready — AI activity will appear here]\x1b[0m\r\n');
+      const buf = logBuffers[activeChatId];
+      if (buf?.length) {
+        buf.forEach(t => term.write(t));
+      } else {
+        term.write('\x1b[90m[Agent Log ready — AI activity will appear here]\x1b[0m\r\n');
+      }
     }
 
     // re-fit on panel resize
@@ -826,6 +865,22 @@ function activateTab(tabId) {
 function writeLog(text) {
   const tab = tabs.find(t => t.kind === 'log');
   if (tab?.term) tab.term.write(text);
+  if (activeChatId) {
+    if (!logBuffers[activeChatId]) logBuffers[activeChatId] = [];
+    logBuffers[activeChatId].push(text);
+  }
+}
+
+function restoreLogTab(chatId) {
+  const tab = tabs.find(t => t.kind === 'log');
+  if (!tab?.term) return;  // xterm 미생성이면 skip — activateTab 시 처리
+  tab.term.reset();
+  const buf = logBuffers[chatId];
+  if (buf?.length) {
+    buf.forEach(t => tab.term.write(t));
+  } else {
+    tab.term.write('\x1b[90m[Agent Log ready — AI activity will appear here]\x1b[0m\r\n');
+  }
 }
 
 // PTY tab
