@@ -6,6 +6,7 @@ import subprocess
 import sys
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -515,7 +516,7 @@ async def auto_loop(chat_id: str, cwd: str, interval: int):
 async def auto_start(body: dict):
     global _auto_task
     if _auto_task and not _auto_task.done():
-        return {"error": "already running"}, 400
+        return JSONResponse({"error": "already running"}, status_code=400)
 
     cwd = body.get("cwd", "")
     interval = int(body.get("interval_seconds", 10800))
