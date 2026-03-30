@@ -47,6 +47,24 @@ def init_db():
                 resume_at   REAL NOT NULL,
                 created_at  REAL NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS auto_config (
+                id               INTEGER PRIMARY KEY,
+                cwd              TEXT NOT NULL,
+                interval_seconds INTEGER DEFAULT 10800,
+                is_running       INTEGER DEFAULT 0,
+                created_at       TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS auto_cycles (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id      TEXT NOT NULL,
+                cycle_number INTEGER NOT NULL,
+                task         TEXT,
+                result       TEXT,
+                started_at   TEXT DEFAULT (datetime('now')),
+                finished_at  TEXT
+            );
         """)
 
 
@@ -158,3 +176,51 @@ def get_pending_schedules() -> list[dict]:
 def delete_schedule(chat_id: str):
     with get_conn() as conn:
         conn.execute("DELETE FROM schedules WHERE chat_id=?", (chat_id,))
+
+
+# ── Auto Mode ──────────────────────────────────────────────────────────────
+
+def get_auto_config() -> dict | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM auto_config WHERE id=1").fetchone()
+    return dict(row) if row else None
+
+
+def upsert_auto_config(cwd: str, interval_seconds: int):
+    with get_conn() as conn:
+        existing = conn.execute("SELECT id FROM auto_config WHERE id=1").fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE auto_config SET cwd=?, interval_seconds=? WHERE id=1",
+                (cwd, interval_seconds),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO auto_config (id, cwd, interval_seconds) VALUES (1, ?, ?)",
+                (cwd, interval_seconds),
+            )
+
+
+def set_auto_running(is_running: bool):
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE auto_config SET is_running=? WHERE id=1",
+            (int(is_running),),
+        )
+
+
+def add_auto_cycle(chat_id: str, cycle_number: int, task: str | None, result: str):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO auto_cycles (chat_id, cycle_number, task, result) VALUES (?,?,?,?)",
+            (chat_id, cycle_number, task, result),
+        )
+
+
+def get_last_cycle_number(chat_id: str) -> int:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT MAX(cycle_number) FROM auto_cycles WHERE chat_id=?",
+            (chat_id,),
+        ).fetchone()
+    return row[0] if row and row[0] is not None else 0
