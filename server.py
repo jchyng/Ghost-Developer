@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 import uuid
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
@@ -494,11 +495,21 @@ async def _run_orchestrator(chat_id: str, user_message: str, instance: orc.Orche
 # ── 자율 모드 ─────────────────────────────────────────────────────────────
 
 async def auto_loop(chat_id: str, cwd: str, interval: int):
-    async def on_event(event: dict):
-        logging.info("[AUTO:%s] %s", chat_id, event)
-        await _broadcast(chat_id, event)
+    consecutive_failures = 0
 
     while True:
+        rate_limit_at = 0.0
+        cycle_result = None
+
+        async def on_event(event: dict):
+            nonlocal rate_limit_at, cycle_result
+            logging.info("[AUTO:%s] %s", chat_id, event)
+            if event["type"] == "rate_limit":
+                rate_limit_at = event.get("resets_at", 0.0)
+            elif event["type"] == "cycle_done":
+                cycle_result = event.get("result")
+            await _broadcast(chat_id, event)
+
         orch = orc.Orchestrator(chat_id)
         orc._running[chat_id] = orch
         try:
@@ -509,7 +520,35 @@ async def auto_loop(chat_id: str, cwd: str, interval: int):
             logging.error("Auto cycle error (chat=%s): %s", chat_id, e)
         finally:
             orc._running.pop(chat_id, None)
-        await asyncio.sleep(interval)
+
+        # 1. 레이트 리밋: resets_at까지 대기 후 동일 사이클 재시도 (interval 스킵)
+        if rate_limit_at > 0:
+            wait = rate_limit_at - time.time()
+            if wait > 0:
+                logging.info("[AUTO] Rate limited. Sleeping %.0fs until reset.", wait)
+                try:
+                    await asyncio.sleep(wait)
+                except asyncio.CancelledError:
+                    break
+            continue
+
+        # 2. 연속 실패 카운트 — 3회 연속 failed이면 자동 중지
+        if cycle_result == "failed":
+            consecutive_failures += 1
+        else:
+            consecutive_failures = 0
+
+        if consecutive_failures >= 3:
+            logging.warning("연속 3회 실패로 자율 모드 중지됨")
+            db.set_auto_running(False)
+            _auto_task.cancel()
+            break
+
+        # 3. 정상 인터벌 대기
+        try:
+            await asyncio.sleep(interval)
+        except asyncio.CancelledError:
+            break
 
 
 @app.post("/auto/start")
