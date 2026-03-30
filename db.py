@@ -65,6 +65,14 @@ def init_db():
                 started_at   TEXT DEFAULT (datetime('now')),
                 finished_at  TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS tasks (
+                id         TEXT PRIMARY KEY,
+                cwd        TEXT NOT NULL,
+                prompt     TEXT NOT NULL,
+                status     TEXT NOT NULL DEFAULT 'pending',
+                created_at REAL NOT NULL
+            );
         """)
 
 
@@ -224,3 +232,32 @@ def get_last_cycle_number(chat_id: str) -> int:
             (chat_id,),
         ).fetchone()
     return row[0] if row and row[0] is not None else 0
+
+
+# ── Tasks ──────────────────────────────────────────────────────────────────
+
+def create_task(task_id: str, cwd: str, prompt: str, created_at: float):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO tasks (id, cwd, prompt, status, created_at) VALUES (?,?,?,?,?)",
+            (task_id, cwd, prompt, "pending", created_at),
+        )
+
+
+def update_task_status(task_id: str, status: str):
+    with get_conn() as conn:
+        conn.execute("UPDATE tasks SET status=? WHERE id=?", (status, task_id))
+
+
+def list_tasks() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM tasks ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_task(task_id: str) -> dict | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+    return dict(row) if row else None

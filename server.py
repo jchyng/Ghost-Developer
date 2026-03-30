@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import uuid
+from typing import Any, TypedDict
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -21,9 +22,21 @@ app = FastAPI()
 os.makedirs("static", exist_ok=True)
 db.init_db()
 
-sessions: dict = {}   # session_id -> PtyProcess  (수동 터미널)
-tasks: list = []       # 모든 작업 목록
-cwd_locks: dict = {}  # cwd -> asyncio.Lock (동일 경로 직렬화)
+class TaskDict(TypedDict):
+    id: str
+    cwd: str
+    prompt: str
+    status: str          # pending | running | done | cancelled | error
+    created_at: float
+    session_id: str
+    output: bytearray
+    output_event: asyncio.Event | None
+    proc: Any            # PtyProcess (플랫폼별) or None
+
+
+sessions: dict[str, Any] = {}        # session_id -> PtyProcess  (수동 터미널)
+tasks: list[TaskDict] = []            # 모든 작업 목록
+cwd_locks: dict[str, asyncio.Lock] = {}  # cwd -> asyncio.Lock (동일 경로 직렬화)
 _auto_task: asyncio.Task | None = None
 
 
@@ -68,18 +81,19 @@ async def git_commit(cwd: str, message: str, output_buf: bytearray | None = None
 
 # ── 태스크 직렬화 (내부 필드 제외) ───────────────────────────────────────
 
-def task_to_dict(t: dict) -> dict:
+def task_to_dict(t: TaskDict) -> dict:
     return {k: v for k, v in t.items() if k not in ("output", "output_event", "proc")}
 
 
 # ── 태스크 실행기 ─────────────────────────────────────────────────────────
 
-async def run_task(task: dict):
+async def run_task(task: TaskDict):
     cwd = task["cwd"]
     cwd_locks.setdefault(cwd, asyncio.Lock())
 
     async with cwd_locks[cwd]:
         task["status"] = "running"
+        db.update_task_status(task["id"], "running")
         task["output"] = bytearray()
         task["output_event"] = asyncio.Event()
 
@@ -102,6 +116,7 @@ async def run_task(task: dict):
             proc = spawn_pty(cmd, cwd=cwd)
         except Exception as e:
             task["status"] = "error"
+            db.update_task_status(task["id"], "error")
             task["output"].extend(f"\r\n[프로세스 실행 실패: {e}]\r\n".encode())
             task["output_event"].set()
             return
@@ -132,7 +147,7 @@ async def run_task(task: dict):
                         if not proc.isalive() or empty_streak > 5:
                             break
                         await asyncio.sleep(0.05)
-                except Exception:
+                except OSError:
                     break
             task["output_event"].set()
 
@@ -153,6 +168,7 @@ async def run_task(task: dict):
         # 외부에서 cancel된 경우 status가 이미 "cancelled"
         if task["status"] != "cancelled":
             task["status"] = "done"
+        db.update_task_status(task["id"], task["status"])
         task["output_event"].set()
 
         try:
@@ -165,24 +181,23 @@ async def run_task(task: dict):
 
 @app.get("/api/fs")
 async def browse_fs(path: str = ""):
-    if not path:
-        path = os.path.expanduser("~")
+    from pathlib import Path
+    raw = path or os.path.expanduser("~")
     try:
-        abs_path = os.path.abspath(path)
-        if not os.path.isdir(abs_path):
-            return {"path": abs_path, "entries": [], "error": "not a directory"}
-        entries = []
-        for name in sorted(os.listdir(abs_path)):
-            if name.startswith("."):
-                continue
-            full = os.path.join(abs_path, name)
-            if os.path.isdir(full):
-                entries.append({"name": name, "type": "dir"})
-        return {"path": abs_path, "entries": entries}
+        # resolve()로 symlink를 따라가 실제 경로 확인 (디렉토리 트래버설 방지)
+        abs_path = Path(raw).resolve()
+        if not abs_path.is_dir():
+            return {"path": str(abs_path), "entries": [], "error": "not a directory"}
+        entries = [
+            {"name": entry.name, "type": "dir"}
+            for entry in sorted(abs_path.iterdir())
+            if not entry.name.startswith(".") and entry.is_dir()
+        ]
+        return {"path": str(abs_path), "entries": entries}
     except PermissionError:
-        return {"path": path, "entries": [], "error": "permission denied"}
-    except Exception as e:
-        return {"path": path, "entries": [], "error": str(e)}
+        return {"path": raw, "entries": [], "error": "permission denied"}
+    except OSError as e:
+        return {"path": raw, "entries": [], "error": str(e)}
 
 
 # ── REST API ──────────────────────────────────────────────────────────────
@@ -200,17 +215,19 @@ async def create_task(body: dict):
         return JSONResponse({"error": f"cwd not found: {abs_cwd}"}, status_code=400)
 
     task_id = str(uuid.uuid4())[:8]
+    created_at = time.time()
     task = {
         "id": task_id,
         "cwd": abs_cwd,
         "prompt": prompt,
         "status": "pending",
-        "created_at": time.time(),
+        "created_at": created_at,
         "session_id": f"task-{task_id}",
         "output": bytearray(),
         "output_event": None,
         "proc": None,
     }
+    db.create_task(task_id, abs_cwd, prompt, created_at)
     tasks.append(task)
     asyncio.create_task(run_task(task))
     return task_to_dict(task)
@@ -228,6 +245,7 @@ async def cancel_task(task_id: str):
         return {"error": "not found"}
     if task["status"] == "running":
         task["status"] = "cancelled"
+        db.update_task_status(task_id, "cancelled")
         proc = task.get("proc")
         if proc and proc.isalive():
             proc.close()
@@ -273,7 +291,7 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
                 try:
                     await websocket.send_bytes(chunk)
                     pos += len(chunk)
-                except Exception:
+                except (WebSocketDisconnect, RuntimeError):
                     return
 
         # 마지막 잔여 출력 flush
@@ -281,7 +299,7 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
         if tail:
             try:
                 await websocket.send_bytes(tail)
-            except Exception:
+            except (WebSocketDisconnect, RuntimeError):
                 pass
         return
 
@@ -300,12 +318,12 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
                     if isinstance(data, str):
                         data = data.encode("utf-8", errors="replace")
                     await websocket.send_bytes(data)
-        except Exception:
+        except (OSError, WebSocketDisconnect, RuntimeError):
             pass
         finally:
             try:
                 await websocket.close()
-            except Exception:
+            except (WebSocketDisconnect, RuntimeError):
                 pass
 
     async def ws_to_pty():
@@ -323,10 +341,10 @@ async def terminal_ws(websocket: WebSocket, session_id: str):
                         if obj.get("type") == "resize":
                             proc.setwinsize(int(obj["rows"]), int(obj["cols"]))
                             continue
-                    except Exception:
+                    except (json.JSONDecodeError, KeyError, ValueError):
                         pass
                 proc.write(raw.decode("utf-8", errors="replace"))
-        except (WebSocketDisconnect, Exception):
+        except (WebSocketDisconnect, OSError):
             pass
         finally:
             pass  # PTY는 WS 단절 시 유지; DELETE /api/shells/{id} 로만 종료
@@ -461,7 +479,7 @@ async def chat_ws(websocket: WebSocket, chat_id: str):
             msg = await websocket.receive()
             if msg["type"] == "websocket.disconnect":
                 break
-    except (WebSocketDisconnect, Exception):
+    except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
         _chat_subs.get(chat_id, set()).discard(websocket)
@@ -473,7 +491,7 @@ async def _broadcast(chat_id: str, event: dict):
     for ws in _chat_subs.get(chat_id, set()):
         try:
             await ws.send_text(json.dumps(event))
-        except Exception:
+        except (WebSocketDisconnect, RuntimeError):
             dead.add(ws)
     _chat_subs.get(chat_id, set()).difference_update(dead)
 
@@ -501,8 +519,8 @@ async def _generate_title(chat_id: str, first_message: str):
         if title:
             db.update_chat_title(chat_id, title)
             await _broadcast(chat_id, {"type": "title_update", "chat_id": chat_id, "title": title})
-    except Exception:
-        pass  # 실패해도 조용히 — 기존 title(cwd) 유지
+    except Exception as e:
+        logging.warning("title generation failed (chat=%s): %s", chat_id, e)
 
 
 async def _run_orchestrator(chat_id: str, user_message: str, instance: orc.Orchestrator):
@@ -646,6 +664,11 @@ async def _cleanup_tasks_loop():
 async def _startup():
     """서버 재시작 시 is_running=True인 자율 모드 설정이 있으면 자동 재개한다."""
     global _auto_task
+    # 이전 서버 세션에서 미완료 상태로 남은 tasks를 error로 표시
+    with db.get_conn() as conn:
+        conn.execute(
+            "UPDATE tasks SET status='error' WHERE status IN ('pending', 'running')"
+        )
     asyncio.create_task(_cleanup_tasks_loop())
     config = db.get_auto_config()
     if config and config["is_running"]:
@@ -654,6 +677,47 @@ async def _startup():
             auto_loop(chat["id"], config["cwd"], config["interval_seconds"])
         )
         logging.info("Auto mode resumed on startup (cwd=%s)", config["cwd"])
+
+
+@app.on_event("shutdown")
+async def _shutdown():
+    """서버 종료 시 모든 PTY 프로세스와 실행 중인 Orchestrator를 정리한다."""
+    # 자율 모드 취소
+    if _auto_task and not _auto_task.done():
+        _auto_task.cancel()
+
+    # 실행 중인 Orchestrator 취소
+    for instance in list(orc._running.values()):
+        instance.cancel()
+
+    # 수동 터미널 PTY 종료
+    for proc in list(sessions.values()):
+        try:
+            if proc.isalive():
+                proc.close()
+        except OSError:
+            pass
+
+    # 실행 중인 태스크 PTY 종료 + DB 상태 정리
+    for task in tasks:
+        if task["status"] == "running":
+            proc = task.get("proc")
+            try:
+                if proc and proc.isalive():
+                    proc.close()
+            except OSError:
+                pass
+            db.update_task_status(task["id"], "error")
+
+    # Chat WebSocket 구독자 종료
+    for ws_set in list(_chat_subs.values()):
+        for ws in list(ws_set):
+            try:
+                await ws.close()
+            except (WebSocketDisconnect, RuntimeError):
+                pass
+
+    logging.info("Shutdown complete.")
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
