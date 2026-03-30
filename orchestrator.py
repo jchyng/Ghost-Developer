@@ -343,15 +343,19 @@ class Orchestrator:
 
         if not passed:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                None,
-                lambda: subprocess.run(
+
+            def _rollback():
+                subprocess.run(
                     ["git", "checkout", "."],
-                    cwd=cwd,
-                    capture_output=True,
-                ),
-            )
-            self._write_work_log(cwd, task, "failed")
+                    cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                )
+                subprocess.run(
+                    ["git", "clean", "-fd"],
+                    cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                )
+
+            await loop.run_in_executor(None, _rollback)
+            self._write_work_log(cwd, task, "failed", "검증 실패로 롤백됨")
             result_str = "failed"
         else:
             self._write_work_log(cwd, task, "success")
