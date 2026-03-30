@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -21,6 +22,7 @@ db.init_db()
 sessions: dict = {}   # session_id -> PtyProcess  (수동 터미널)
 tasks: list = []       # 모든 작업 목록
 cwd_locks: dict = {}  # cwd -> asyncio.Lock (동일 경로 직렬화)
+_auto_task: asyncio.Task | None = None
 
 
 # ── PTY 생성 (플랫폼 분기) ────────────────────────────────────────────────
@@ -486,6 +488,95 @@ async def _run_orchestrator(chat_id: str, user_message: str, instance: orc.Orche
         await _broadcast(chat_id, event)
 
     await instance.run(user_message, on_event)
+
+
+# ── 자율 모드 ─────────────────────────────────────────────────────────────
+
+async def auto_loop(chat_id: str, cwd: str, interval: int):
+    async def on_event(event: dict):
+        logging.info("[AUTO:%s] %s", chat_id, event)
+        await _broadcast(chat_id, event)
+
+    while True:
+        orch = orc.Orchestrator(chat_id)
+        orc._running[chat_id] = orch
+        try:
+            await orch.auto_run(on_event=on_event)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logging.error("Auto cycle error (chat=%s): %s", chat_id, e)
+        finally:
+            orc._running.pop(chat_id, None)
+        await asyncio.sleep(interval)
+
+
+@app.post("/auto/start")
+async def auto_start(body: dict):
+    global _auto_task
+    if _auto_task and not _auto_task.done():
+        return {"error": "already running"}, 400
+
+    cwd = body.get("cwd", "")
+    interval = int(body.get("interval_seconds", 10800))
+
+    db.upsert_auto_config(cwd, interval)
+
+    chat = db.create_chat(cwd, f"Auto Mode — {cwd}")
+    chat_id = chat["id"]
+
+    _auto_task = asyncio.create_task(auto_loop(chat_id, cwd, interval))
+    db.set_auto_running(True)
+
+    return {"status": "started", "chat_id": chat_id}
+
+
+@app.post("/auto/stop")
+async def auto_stop():
+    global _auto_task
+    if _auto_task and not _auto_task.done():
+        _auto_task.cancel()
+    db.set_auto_running(False)
+    return {"status": "stopped"}
+
+
+@app.get("/auto/status")
+async def auto_status():
+    config = db.get_auto_config()
+    if not config:
+        return {
+            "is_running": False,
+            "cwd": None,
+            "interval_seconds": 10800,
+            "last_cycle": None,
+        }
+
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT cycle_number, task, result, finished_at "
+            "FROM auto_cycles ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+    last_cycle = dict(row) if row else None
+
+    return {
+        "is_running": bool(config["is_running"]),
+        "cwd": config["cwd"],
+        "interval_seconds": config["interval_seconds"],
+        "last_cycle": last_cycle,
+    }
+
+
+@app.on_event("startup")
+async def _startup():
+    """서버 재시작 시 is_running=True인 자율 모드 설정이 있으면 자동 재개한다."""
+    global _auto_task
+    config = db.get_auto_config()
+    if config and config["is_running"]:
+        chat = db.create_chat(config["cwd"], f"Auto Mode — {config['cwd']}")
+        _auto_task = asyncio.create_task(
+            auto_loop(chat["id"], config["cwd"], config["interval_seconds"])
+        )
+        logging.info("Auto mode resumed on startup (cwd=%s)", config["cwd"])
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
