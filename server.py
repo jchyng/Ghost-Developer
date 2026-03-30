@@ -463,7 +463,7 @@ async def _generate_title(chat_id: str, first_message: str):
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
         return
-    model = os.getenv("ORCHESTRATOR_MODEL", "gpt-4o-mini")
+    model = os.getenv("ORCHESTRATOR_MODEL", "gpt-5.4-mini")
     client = AsyncOpenAI(api_key=api_key)
     try:
         resp = await client.chat.completions.create(

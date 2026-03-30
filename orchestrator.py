@@ -283,19 +283,23 @@ class Orchestrator:
             f"- 상세: {details}\n\n"
         )
 
-        if os.path.exists(log_path):
-            with open(log_path, "r", encoding="utf-8") as f:
-                existing = f.read()
-            if existing.startswith("# Work Log") and "\n\n" in existing:
-                header, rest = existing.split("\n\n", 1)
-                content = f"{header}\n\n{entry}{rest}"
+        try:
+            if os.path.exists(log_path):
+                with open(log_path, "r", encoding="utf-8") as f:
+                    existing = f.read()
+                if existing.startswith("# Work Log") and "\n\n" in existing:
+                    header, rest = existing.split("\n\n", 1)
+                    content = f"{header}\n\n{entry}{rest}"
+                else:
+                    content = entry + existing
             else:
-                content = entry + existing
-        else:
-            content = f"# Work Log\n\n{entry}"
+                content = f"# Work Log\n\n{entry}"
 
-        with open(log_path, "w", encoding="utf-8") as f:
-            f.write(content)
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write(content)
+        except OSError as e:
+            import logging as _logging
+            _logging.warning("WORK_LOG.md 쓰기 실패 (%s): %s", log_path, e)
 
     async def auto_run(self, on_event: EventCallback):
         """자율 모드 진입점: 분석 → 계획 → 실행 → 검증 한 사이클을 수행한다."""
