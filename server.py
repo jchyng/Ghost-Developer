@@ -42,10 +42,19 @@ def spawn_pty(cmd, cwd=None, dimensions=(24, 80)):
 
 # ── Git Auto-commit ───────────────────────────────────────────────────────
 
+def _sanitize_commit_message(message: str) -> str:
+    """커밋 메시지에서 제어문자·백슬래시·따옴표를 제거한다."""
+    import re
+    # 제어문자(개행 포함) 및 백슬래시, 큰따옴표, 작은따옴표 제거
+    cleaned = re.sub(r'[\x00-\x1f\x7f\\\'"]', '', message)
+    return cleaned.strip() or "Auto-commit"
+
+
 async def git_commit(cwd: str, message: str, output_buf: bytearray | None = None):
     # asyncio.create_subprocess_exec + PIPE 조합이 Windows에서 불안정하므로
     # subprocess.run을 스레드 executor에서 실행한다.
     loop = asyncio.get_event_loop()
+    message = _sanitize_commit_message(message)
 
     def _run(args):
         return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
@@ -180,12 +189,23 @@ async def browse_fs(path: str = ""):
 
 @app.post("/tasks")
 async def create_task(body: dict):
+    cwd = (body.get("cwd") or "").strip()
+    prompt = (body.get("prompt") or "").strip()
+    if not cwd:
+        return JSONResponse({"error": "cwd is required"}, status_code=400)
+    if not prompt:
+        return JSONResponse({"error": "prompt is required"}, status_code=400)
+    abs_cwd = os.path.abspath(cwd)
+    if not os.path.isdir(abs_cwd):
+        return JSONResponse({"error": f"cwd not found: {abs_cwd}"}, status_code=400)
+
     task_id = str(uuid.uuid4())[:8]
     task = {
         "id": task_id,
-        "cwd": body["cwd"],
-        "prompt": body["prompt"],
+        "cwd": abs_cwd,
+        "prompt": prompt,
         "status": "pending",
+        "created_at": time.time(),
         "session_id": f"task-{task_id}",
         "output": bytearray(),
         "output_event": None,
@@ -606,10 +626,27 @@ async def auto_status():
     }
 
 
+async def _cleanup_tasks_loop():
+    """1시간마다 완료된 지 1시간 이상 된 tasks를 메모리에서 제거한다."""
+    while True:
+        await asyncio.sleep(3600)
+        cutoff = time.time() - 3600
+        done_statuses = ("done", "cancelled", "error")
+        to_remove = [
+            t for t in tasks
+            if t["status"] in done_statuses and t.get("created_at", 0) < cutoff
+        ]
+        for t in to_remove:
+            tasks.remove(t)
+        if to_remove:
+            logging.info("Cleaned up %d stale tasks from memory", len(to_remove))
+
+
 @app.on_event("startup")
 async def _startup():
     """서버 재시작 시 is_running=True인 자율 모드 설정이 있으면 자동 재개한다."""
     global _auto_task
+    asyncio.create_task(_cleanup_tasks_loop())
     config = db.get_auto_config()
     if config and config["is_running"]:
         chat = db.create_chat(config["cwd"], f"Auto Mode — {config['cwd']}")
